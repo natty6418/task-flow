@@ -19,13 +19,20 @@ router.get('/google/callback',
             return;
         }
         const token = generateToken({ id: user.id, email: user.email, role: user.role });
-        res.cookie('jwt', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+        res.cookie('jwt', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',  // or 'lax' if cross-origin
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+            path: '/'  // make cookie available for all paths
+          });
         res.json({ message: 'Login successful', token });        // Redirect to home or any other route
     }
   );
 
-router.get('/login', async (req: Request, res: Response) => {
+router.post('/login', async (req: Request, res: Response) => {
     const { email, password } = req.body;
+    console.log(email, password);
     try {
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
@@ -38,7 +45,13 @@ router.get('/login', async (req: Request, res: Response) => {
             return;
         }
         const token = generateToken({ id: user.id, email: user.email, role: user.role });
-        res.cookie('jwt', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+        res.cookie('jwt', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',  // or 'lax' if cross-origin
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+            path: '/'  // make cookie available for all paths
+          });
         res.json({ message: 'Login successful', token });
     }
     catch (error) {
@@ -49,7 +62,7 @@ router.get('/login', async (req: Request, res: Response) => {
 })
 
 
-router.get('/signup', async (req: Request, res: Response) => {
+router.post('/signup', async (req: Request, res: Response) => {
     const { name, email, password } = req.body;
     try {
         const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -66,7 +79,14 @@ router.get('/signup', async (req: Request, res: Response) => {
             }
         });
         const token = generateToken({ id: user.id, email: user.email, role: user.role });
-        res.cookie('jwt', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+        res.cookie('jwt', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',  // or 'lax' if cross-origin
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+            path: '/'  // make cookie available for all paths
+          });
+          
         res.status(201).json({ message: 'User created successfully', token });
     }
     catch (error) {

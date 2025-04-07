@@ -56,3 +56,5 @@ router.delete('/delete', passport.authenticate('jwt', { session: false }),
         }
     }
 );
+
+export default router;
