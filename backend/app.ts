@@ -2,6 +2,8 @@ import express from 'express';
 import * as dotenv from 'dotenv';
 import { Request, Response } from 'express';
 import prisma from './models/prismaClient';
+import auth from "./routes/auth";
+import passport from './config/passport';
 
 dotenv.config();
 
@@ -10,9 +12,14 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(passport.initialize());
+
+
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || 'localhost';
 
+app.use('/auth', auth);
 
 app.get('/ping', (req: Request, res: Response) => {
   res.send('Hello World!');

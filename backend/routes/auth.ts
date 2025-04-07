@@ -74,3 +74,5 @@ router.get('/signup', async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+export default router;
