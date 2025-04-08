@@ -13,6 +13,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model ProjectMember {
+  id        String  @id @default(uuid())
+  role      Role    @default(MEMBER)
+  userId    String
+  projectId String
+
+  user      User    @relation(fields: [userId], references: [id])
+  project   Project @relation(fields: [projectId], references: [id])
+
+  @@unique([userId, projectId]) // User can only be in a project once
+}
+
 model User {
   id             String    @id @default(uuid())
   name           String
@@ -20,22 +32,31 @@ model User {
   password       String
   role           Role      @default(MEMBER)
   authProvider   AuthProvider @default(CREDENTIALS)
-  projects       Project[] @relation("UserProjects")
+  projects       Project[] @relation("ProjectMembers") // New many-to-many relation
+  ownedProjects  Project[] @relation("ProjectOwner") // Owner relation
   assignedTasks  Task[]    @relation("UserTasks")
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  projectMemberships ProjectMember[]
 }
 
 model Project {
   id          String   @id @default(uuid())
   name        String
   description String?
+  
   ownerId     String
-  owner       User     @relation("UserProjects", fields: [ownerId], references: [id])
+  owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id]) // Owner relation
+  
+  members     User[]   @relation("ProjectMembers") // New many-to-many relation
+  
   tasks       Task[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  projectMemberships ProjectMember[]
 }
+
 
 model Task {
   id            String   @id @default(uuid())

@@ -6,6 +6,9 @@ import user from "./routes/user";
 import passport from './config/passport';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import project from "./routes/project";
+import { NextFunction } from "express";
+
 
 
 
@@ -30,7 +33,13 @@ const HOST = process.env.HOST || 'localhost';
 
 app.use('/auth', auth);
 app.use('/user', user);
+app.use('/project', project);
 
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error("Global error handler caught:", err);
+  res.status(500).json({ error: "Something broke" });
+  next();
+});
 app.get('/ping', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
