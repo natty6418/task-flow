@@ -2,28 +2,30 @@
 
 import { createContext, useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { User } from "../types/User";
+import { User } from "../types/type";
 import API from "@/services/api";
 
 interface AuthContextType {
   user: User | null;
-  login: (token: string, userData: User) => void;
+  login: (userData: User) => void;
   logout: () => void;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType|null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User|null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const login = (token: string, userData: User) => {
-    localStorage.setItem('token', token);
+  const login = (userData: User) => {
     setUser(userData);
+    setLoading(false);
+    router.push('/'); // Redirect to the dashboard or home page
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
     setUser(null);
     router.push('/login');
   };
@@ -39,9 +41,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await API.get('/user/me'); 
+        const res = await API.get('/user/me', { withCredentials: true }); 
         if (res.status === 200) {
           setUser(res.data);
+          setLoading(false);
         } else {
           router.push('/login'); 
         }
@@ -52,10 +55,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     checkAuth();
-  }, []);
+  }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

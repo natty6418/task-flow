@@ -8,13 +8,23 @@ import { User } from '@prisma/client';
 const router = express.Router();
 
 router.get('/me', passport.authenticate('jwt', { session: false }),
-    (req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
         const user = req.user as User;
         if (!user) {
             res.status(401).json({ message: 'Unauthorized' });
             return;
         }
-        res.json(user);
+        const userInfo = await prisma.user.findUnique({
+            where: { id: user.id },
+            include: {
+              projects: true,
+              ownedProjects: true,
+              assignedTasks: true,
+              projectMemberships: true
+            }
+          });
+          
+        res.json(userInfo);
 });
 
 router.post('/update', passport.authenticate('jwt', { session: false }),

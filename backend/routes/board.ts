@@ -2,7 +2,7 @@ import express from "express"
 import { Request, Response } from "express"
 import prisma from "../models/prismaClient"
 import passport from "passport"
-import { User } from "@prisma/client"
+import { Task, User } from "@prisma/client"
 import { ProjectMember } from "@prisma/client"
 
 const router = express.Router()
@@ -24,7 +24,11 @@ router.get("/all",
             where: { 
                 AND: [{ id: projectId }, { projectMemberships: { some: { userId: user.id } } }]
              },
-            select: {boards: true }
+            select: {boards: {
+                include:{
+                    tasks: true,
+                }
+            } }
         })
         if (!project){
             res.status(404).json({ message: "Project not found" })
@@ -47,9 +51,9 @@ router.post("/create",
             return;
         }
 
-        const { name, projectId, taskId } = req.body;
+        const { name, projectId, description, status } = req.body;
 
-        if (!name || !projectId || !taskId) {
+        if (!name || !projectId ) {
             res.status(400).json({ message: "Bad Request" });
             return;
         }
@@ -72,26 +76,25 @@ router.post("/create",
         }
 
         // Check task exists and belongs to the project
-        const task = await prisma.task.findFirst({
-            where: {
-                id: taskId,
-                projectId
-            }
-        });
+        // const task = await prisma.task.findFirst({
+        //     where: {
+        //         id: taskId,
+        //         projectId
+        //     }
+        // });
 
-        if (!task) {
-            res.status(404).json({ message: "Task not found or doesn't belong to project" });
-            return;
-        }
+        // if (!task) {
+        //     res.status(404).json({ message: "Task not found or doesn't belong to project" });
+        //     return;
+        // }
 
         try {
             const board = await prisma.board.create({
                 data: {
                     name,
                     projectId,
-                    tasks: {
-                        connect: { id: taskId }
-                    }
+                    description: description || "",
+                    status: status || "TODO",
                 }
             });
 
@@ -119,7 +122,8 @@ router.put("/update",
             tasks,
             projectId
         } = req.body;
-        if (!id || !name || !description || !status || !tasks || !projectId) {
+        console.log(req.body)
+        if (!id || !name || !projectId) {
             res.status(400).json({ message: "Bad Request" });
             return;
         }
@@ -166,10 +170,10 @@ router.put("/update",
                 where: { id },
                 data: {
                     name,
-                    description,
-                    status,
+                    description: description || "",
+                    status: status || "TODO",
                     tasks: {
-                        set: tasks.map((taskId: string) => ({ id: taskId }))
+                        set: tasks.map((task: Task) => ({ id: task.id }))
                     }
                 }
             });
@@ -183,3 +187,6 @@ router.put("/update",
 
     }
 );
+
+
+export default router;

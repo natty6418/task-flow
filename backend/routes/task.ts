@@ -71,7 +71,7 @@ router.post("/create",
             res.status(401).json({ message: "Unauthorized" })
             return
         }
-        const { title, projectId, description, dueDate } = req.body
+        const { title, projectId, description, dueDate, status } = req.body
 
         if (!title || !projectId) {
             res.status(400).json({ message: "Bad Request" })
@@ -101,11 +101,12 @@ router.post("/create",
                     projectId,
                     assignedToId: user.id,
                     description,
-                    dueDate,
+                    dueDate: new Date(dueDate),
+                    status: status? status : "TODO",
 
                 }
             })
-            res.status(201).json(newTask)
+            res.status(200).json(newTask)
         } catch (error) {
             console.error(error)
             res.status(500).json({ error: "Internal Server Error" })
@@ -126,6 +127,13 @@ router.post("/assign",
 
         if (!taskId || !userId) {
             res.status(400).json({ message: "Bad Request" })
+            return
+        }
+        const userToBeAssigned = await prisma.user.findUnique({
+            where: { id: userId }
+        })
+        if (!userToBeAssigned) {
+            res.status(404).json({ message: "User not found" })
             return
         }
 
@@ -150,15 +158,20 @@ router.put("/update",
             return
         }
         const { id, title, description, status, dueDate, priority } = req.body
-        if (!id || !title || !description || !status || !dueDate || priority) {
-            res.status(400).json({ message: "Bad Request" })
+        if (!id || !title ) {
+            res.status(400).json({ message: "Bad Request: Missing title!" })
             return
         }
 
         try {
             const task = await prisma.task.update({
                 where: { id },
-                data: { title, description, status, dueDate, priority }
+                data: { title, 
+                    description, 
+                    status: status || "TODO", 
+                    dueDate: dueDate ? new Date(dueDate) : undefined, 
+                    priority: priority || "LOW"
+                }
             })
             res.status(200).json(task)
         } catch (error) {
@@ -192,3 +205,6 @@ router.delete("/delete",
         }
     }
 )
+
+
+export default router;

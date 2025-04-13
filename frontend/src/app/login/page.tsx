@@ -13,8 +13,9 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await API.post('/auth/login', { email, password }, { withCredentials: true });
-    login(res.data.token, res.data.user);
+    await API.post('/auth/login', { email, password }, { withCredentials: true });
+    const res = await API.get('/user/me', { withCredentials: true });
+    login(res.data);
     router.push('/');
   };
 

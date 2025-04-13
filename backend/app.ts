@@ -8,6 +8,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import project from "./routes/project";
 import { NextFunction } from "express";
+import task from "./routes/task";
+import board from "./routes/board";
 
 
 dotenv.config();
@@ -36,6 +38,8 @@ const HOST = process.env.HOST || 'localhost';
 app.use('/auth', auth);
 app.use('/user', user);
 app.use('/project', project);
+app.use('/task', task);
+app.use('/board', board);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error("Global error handler caught:", err);

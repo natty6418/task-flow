@@ -126,7 +126,7 @@ router.post("/addMember/:id", passport.authenticate("jwt", { session: false }),
             res.status(400).json({ message: "Bad Request" });
             return;
         }
-        const { email } = req.body;
+        const { email, role } = req.body;
         if (!email) {
             res.status(400).json({ message: "Bad Request" });
             return;
@@ -170,14 +170,25 @@ router.post("/addMember/:id", passport.authenticate("jwt", { session: false }),
             return;
         }
         try {
-            const projectMember = await prisma.projectMember.create({
+            await prisma.projectMember.create({
                 data: {
                     userId: member.id,
                     projectId: id,
-                    role: "MEMBER",  
+                    role: role || "MEMBER",  
+                },
+                include:{
+                    user: true,  
                 }
             });
-            res.status(201).json(projectMember);
+            await prisma.project.update({
+                where: { id },
+                data: {
+                    members: {
+                        connect: { id: member.id }
+                    }
+                }
+            });
+            res.status(201).json(member);
         }
         catch (error) {
             console.error(error);
@@ -196,6 +207,12 @@ router.get("/:id", passport.authenticate("jwt", { session: false }),
         try {
             const project = await prisma.project.findUnique({
                 where: { id },
+                include:{
+                    projectMemberships: true,   
+                    members: true,            
+                    tasks: true,
+                    boards: true,
+                }
             });
             if (!project) {
                 res.status(404).json({ message: "Project not found" });
