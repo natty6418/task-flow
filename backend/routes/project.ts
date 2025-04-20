@@ -33,6 +33,14 @@ router.post("/create", passport.authenticate("jwt", { session: false }),
                     role: "ADMIN",  
                 }
             });
+            await prisma.project.update({
+                where: { id: project.id },
+                data: {
+                    members: {
+                        connect: { id: user.id }
+                    }
+                }
+            });
 
             res.status(201).json(project);
 
@@ -146,7 +154,7 @@ router.post("/addMember/:id", passport.authenticate("jwt", { session: false }),
             }
         });
         
-        if (membership && membership.role !== "ADMIN" && project.ownerId !== user.id) {
+        if (membership && (membership.role !== "ADMIN" || project.ownerId !== user.id)) {
             res.status(403).json({ message: "Forbidden" });
             return;
         }
@@ -170,14 +178,21 @@ router.post("/addMember/:id", passport.authenticate("jwt", { session: false }),
             return;
         }
         try {
-            await prisma.projectMember.create({
+            const membership = await prisma.projectMember.create({
                 data: {
                     userId: member.id,
                     projectId: id,
                     role: role || "MEMBER",  
                 },
-                include:{
-                    user: true,  
+                select: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        }
+                    },
+                    role: true,
                 }
             });
             await prisma.project.update({
@@ -188,7 +203,7 @@ router.post("/addMember/:id", passport.authenticate("jwt", { session: false }),
                     }
                 }
             });
-            res.status(201).json(member);
+            res.status(201).json(membership);
         }
         catch (error) {
             console.error(error);
@@ -208,8 +223,8 @@ router.post("/removeMember/:id", passport.authenticate("jwt", { session: false }
             res.status(400).json({ message: "Bad Request" });
             return;
         }
-        const { email } = req.body;
-        if (!email) {
+        const { memberId } = req.body;
+        if (!memberId) {
             res.status(400).json({ message: "Bad Request" });
             return;
         }
@@ -233,7 +248,7 @@ router.post("/removeMember/:id", passport.authenticate("jwt", { session: false }
         }
         // Check if the user exists
         const member = await prisma.user.findUnique({
-            where: { email },
+            where: { id: memberId },
             select: { id: true }
         });
         if (!member) {
@@ -284,7 +299,18 @@ router.get("/:id", passport.authenticate("jwt", { session: false }),
             const project = await prisma.project.findUnique({
                 where: { id },
                 include:{
-                    projectMemberships: true,   
+                    projectMemberships: {
+                        select:{
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                }
+                            },
+                            role: true,
+                        }
+                    },   
                     members: true,            
                     tasks: true,
                     boards: true,

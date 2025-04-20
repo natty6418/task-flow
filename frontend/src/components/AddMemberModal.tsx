@@ -3,9 +3,9 @@
 import { useState } from "react";
 import API from "@/services/api";
 import { Role } from "@/types/type"; // Assuming you have your enums here
-import {User} from "@/types/type"; // Assuming you have your User type here
+import {ProjectMember} from "@/types/type"; // Assuming you have your User type here
 
-export default function AddMemberModal({ projectId,setMembers, onClose }: { projectId: string, setMembers: React.Dispatch<React.SetStateAction<User[]>>, onClose: () => void }) {
+export default function AddMemberModal({ projectId,setMembers, onClose }: { projectId: string, setMembers: React.Dispatch<React.SetStateAction<ProjectMember[]>>, onClose: () => void }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Role>(Role.MEMBER); // Default role
   const [loading, setLoading] = useState(false);
@@ -28,8 +28,8 @@ export default function AddMemberModal({ projectId,setMembers, onClose }: { proj
         throw new Error("Failed to add member");
       }
       const member = res.data;
-
-      setMembers((prevMembers: User[]) => [...prevMembers, member.data]);
+      console.log("Member added:", member);
+      setMembers((prevMembers: ProjectMember[]) => [...prevMembers, member]);
 
       setSuccess("Member added successfully!");
       setEmail("");

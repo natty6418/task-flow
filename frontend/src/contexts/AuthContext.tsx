@@ -53,13 +53,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   const addProject = async (projectData: Project) => {
-    try {
-      const res = await API.post('/project/', projectData, { withCredentials: true });
-      setProjects((prevProjects) => [...(prevProjects || []), res.data]);
-    }
-    catch (error) {
-      console.error("Failed to add project:", error);
-    }
+      setProjects((prevProjects) => [...(prevProjects || []), projectData]);
+    
+
   };
 
   // useEffect(() => {

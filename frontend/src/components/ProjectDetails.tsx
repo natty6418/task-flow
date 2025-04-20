@@ -18,7 +18,7 @@ import FloatingActionButton from "./FloatingActionButton";
 export default function ProjectDetails({ project }: { project: Project }) {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || '');
-  const [members, setMembers] = useState(project.members);
+  const [members, setMembers] = useState(project.projectMemberships);
   const [boards, setBoards] = useState(project.boards);
   const [tasks, setTasks] = useState(project.tasks);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -101,7 +101,7 @@ export default function ProjectDetails({ project }: { project: Project }) {
       <div className="flex flex-col  gap-6 overflow-x-auto">
         <BoardsList boards={boards} tasks={tasks} projectId={project.id} setTasks={setTasks} setBoards={setBoards} setShowAddBoardModal={setShowAddBoardModal} />
         <TasksList tasks={tasks} setShowAddTaskModal={setShowTaskModal} setTasks={setTasks}/>
-        <MembersList members={members} setShowAddMemberModal={setShowAddMemberModal}/>
+        <MembersList members={members} setMembers={setMembers} setShowAddMemberModal={setShowAddMemberModal} projectId={project.id}/>
       </div>
 
       {/* New Task Button */}
