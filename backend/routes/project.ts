@@ -121,6 +121,57 @@ router.get("/search",
         }
     }
 );
+router.post("/addTask",
+    passport.authenticate("jwt", { session: false }),
+    async (req: Request, res: Response) => {
+        const user = req.user as User
+        if (!user) {
+            res.status(401).json({ message: "Unauthorized" })
+            return
+        }
+        const { title, projectId, description, dueDate, status } = req.body
+
+        if (!title || !projectId) {
+            res.status(400).json({ message: "Bad Request" })
+            return
+        }
+
+        // Check user is part of the project
+        const project = await prisma.project.findFirst({
+            where: {
+                id: projectId,
+                projectMemberships: {
+                    some: {
+                        userId: user.id,
+                    }
+                }
+            }
+        })
+        if (!project) {
+            res.status(404).json({ message: "Project not found" })
+            return
+        }
+        // Check task exists
+        try {
+            const newTask = await prisma.task.create({
+                data: {
+                    title,
+                    projectId,
+                    assignedToId: user.id,
+                    description,
+                    dueDate: new Date(dueDate),
+                    status: status? status : "TODO",
+
+                }
+            })
+            res.status(200).json(newTask)
+        } catch (error) {
+            console.error(error)
+            res.status(500).json({ error: "Internal Server Error" })
+        }
+    }
+
+)
 
 router.post("/addMember/:id", passport.authenticate("jwt", { session: false }),
     async (req: Request, res: Response) => {

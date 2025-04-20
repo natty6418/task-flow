@@ -21,6 +21,7 @@ function TaskItem({ task, setTasks }: TaskItemProps) {
     const [initialTask, setInitialTask] = useState<Task>(task);
     const [debouncedTask] = useDebounce(initialTask, 1000);
     const [isDirty, setIsDirty] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
 
 
@@ -58,8 +59,20 @@ function TaskItem({ task, setTasks }: TaskItemProps) {
     setIsDirty(true);
   };
 
+  const removeTask = async () => {
+    try {
+      const res = await API.delete(`/task/delete/${initialTask.id}`);
+      if (res.status !== 200) {
+        console.error('Error deleting task:', res.data);
+        return;
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
   return (
-    <div className="flex w-full items-center justify-between border-b border-gray-200 hover:bg-gray-50 rounded-lg transition-colors">
+    <div className="relative flex w-full items-center justify-between border-b border-gray-200 hover:bg-gray-50 rounded-lg transition-colors">
       {/* Left Section */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <Circle className="w-4 h-4 text-blue-500 flex-shrink-0" />
@@ -131,10 +144,27 @@ function TaskItem({ task, setTasks }: TaskItemProps) {
       </div>
 
       {/* More Options */}
-      <button className="hover:bg-gray-200 p-1 rounded ml-2">
+      <button 
+      onClick={() => setMenuOpen((prev) => !prev)}
+      className="hover:bg-gray-200 p-1 rounded ml-2">
         <MoreVertical className="w-5 h-5 text-gray-500" />
       </button>
+      {menuOpen && (
+          <div className="absolute right-0 mt-16 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-10">
+            <button
+              onClick={()=>{
+                removeTask();
+                setTasks((prev) => prev.filter((t) => t.id !== initialTask.id));
+                setMenuOpen(false);
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+            >
+              Remove Task
+            </button>
+          </div>
+        )}
     </div>
+    
   );
 }
 

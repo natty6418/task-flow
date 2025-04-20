@@ -71,34 +71,19 @@ router.post("/create",
             res.status(401).json({ message: "Unauthorized" })
             return
         }
-        const { title, projectId, description, dueDate, status } = req.body
+        const { title, description, dueDate, status } = req.body
 
-        if (!title || !projectId) {
+        if (!title) {
             res.status(400).json({ message: "Bad Request" })
             return
         }
 
-        // Check user is part of the project
-        const project = await prisma.project.findFirst({
-            where: {
-                id: projectId,
-                projectMemberships: {
-                    some: {
-                        userId: user.id,
-                    }
-                }
-            }
-        })
-        if (!project) {
-            res.status(404).json({ message: "Project not found" })
-            return
-        }
+        
         // Check task exists
         try {
             const newTask = await prisma.task.create({
                 data: {
                     title,
-                    projectId,
                     assignedToId: user.id,
                     description,
                     dueDate: new Date(dueDate),
@@ -180,7 +165,7 @@ router.put("/update",
         }
     }
 )
-router.delete("/delete",
+router.delete("/delete/:id",
     passport.authenticate("jwt", { session: false }),
     async (req: Request, res: Response) => {
         const user = req.user as User
@@ -188,7 +173,7 @@ router.delete("/delete",
             res.status(401).json({ message: "Unauthorized" })
             return
         }
-        const { id } = req.body
+        const { id } = req.params
         if (!id) {
             res.status(400).json({ message: "Bad Request" })
             return

@@ -49,14 +49,14 @@ export type User = {
   
   export type Task = {
     id: string;
-    projectId: string;
+    projectId?: string;
     assignedToId?: string;
     title: string;
     description?: string;
     status: Status;
     dueDate?: Date;
     priority: Priority;
-    project: Project;
+    project?: Project;
     assignedTo?: User;
     createdAt: Date;
     updatedAt: Date;

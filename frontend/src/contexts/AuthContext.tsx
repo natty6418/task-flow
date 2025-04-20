@@ -2,7 +2,7 @@
 
 import { createContext, useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { User } from "../types/type";
+import { Task, User } from "../types/type";
 import API from "@/services/api";
 import { Project } from "@/types/type"; // Adjust the import path as necessary
 
@@ -13,7 +13,10 @@ interface AuthContextType {
   loading: boolean;
   projects: Project[] | [];
   loadingProjects: boolean;
-  addProject: (projectData: Project) => Promise<void>;
+  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+  tasks: Task[] | [];
+  loadingTasks: boolean;
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
 }
 
 const AuthContext = createContext<AuthContextType|null>(null);
@@ -24,6 +27,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
 
   const login = (userData: User) => {
     setUser(userData);
@@ -52,19 +57,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // fetchProjects();
   }, [user]);
 
-  const addProject = async (projectData: Project) => {
-      setProjects((prevProjects) => [...(prevProjects || []), projectData]);
-    
+  useEffect(()=>{
+    const fetchTasks = async () => {
+      try {
+        const res = await API.get('/task/all', { withCredentials: true });
+        setTasks(res.data);
+        setLoadingTasks(false);
+      } catch (error) {
+        console.error("Failed to fetch tasks:", error);
+      }
+    };
+    if (user) {
+      fetchTasks();
+    }
+  }, [projects, user]);
 
-  };
-
-  // useEffect(() => {
-  //   const token = localStorage.getItem('token');
-  //   console.log("Token from localStorage:", token);
-  //   if (!token) {
-  //     router.push('/login');
-  //   }
-  // }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -86,7 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, projects, loadingProjects, addProject }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, projects, loadingProjects, setProjects, tasks, loadingTasks, setTasks }}>
       {children}
     </AuthContext.Provider>
   );

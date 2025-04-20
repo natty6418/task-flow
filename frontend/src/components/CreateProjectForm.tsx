@@ -13,7 +13,7 @@ export default function CreateProjectForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const {addProject} = useAuth();
+  const {setProjects} = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +27,7 @@ export default function CreateProjectForm() {
       }, { withCredentials: true });
 
       console.log("Project created:", res.data);
-      addProject(res.data); // Update the context with the new project
+      setProjects((prev)=>[...prev, res.data]) // Update the context with the new project
       router.push("/"); 
     } catch (err) {
       console.error("Failed to create project:", err);

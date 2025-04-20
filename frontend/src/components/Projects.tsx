@@ -12,36 +12,10 @@ import { PlusCircle } from "lucide-react";
 
 export default function Projects() {
   const { loading, projects, loadingProjects } = useAuth();
-  // const [projects, setProjects] = useState<Project[]>([]);
-  // const [loadingProjects, setLoadingProjects] = useState(true);
-  // const [error, setError] = useState<string | null>(null);
-
-  // useEffect(() => {
-  //   const fetchProjects = async () => {
-  //     try {
-  //       const res = await API.get("/project/", { withCredentials: true });
-  //       setProjects(res.data);
-  //       setLoadingProjects(false);
-  //     } catch (err) {
-  //       console.error("Failed to fetch projects:", err);
-  //       setError("Failed to load projects. Please try again.");
-  //       setLoadingProjects(false);
-  //     }
-  //   };
-
-  //   if (user && !loading) {
-  //     fetchProjects();
-  //   }
-  // }, [user, loading]);
 
   if (loading || loadingProjects) {
     return <div className="p-6 text-center text-lg">Loading projects...</div>;
   }
-
-  // if (error) {
-  //   return <div className="p-6 text-center text-red-500">{error}</div>;
-  // }
-
   return (
     <div className="p-6">
       <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">My Projects</h2>

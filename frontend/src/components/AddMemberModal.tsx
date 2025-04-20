@@ -45,15 +45,17 @@ export default function AddMemberModal({ projectId,setMembers, onClose }: { proj
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-center text-gray-900 dark:text-gray-100">
+    <div className="fixed inset-0 bg-white/30  backdrop-blur-sm flex items-center justify-center p-4 z-50">
+
+<div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+
+        <h2 className="text-2xl font-bold mb-4 text-center text-gray-900 ">
           Add Member
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="email" className="block text-sm font-semibold text-gray-700  mb-1">
               Email Address
             </label>
             <input
@@ -63,19 +65,19 @@ export default function AddMemberModal({ projectId,setMembers, onClose }: { proj
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+              className="w-full border border-gray-300  rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 "
             />
           </div>
 
           <div>
-            <label htmlFor="role" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="role" className="block text-sm font-semibold text-gray-700  mb-1">
               Role
             </label>
             <select
               id="role"
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+              className="w-full border border-gray-300  rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 "
             >
               <option value={Role.ADMIN}>Admin</option>
               <option value={Role.MEMBER}>Member</option>
@@ -92,7 +94,7 @@ export default function AddMemberModal({ projectId,setMembers, onClose }: { proj
             <button
               type="button"
               onClick={() => onClose()}
-              className="px-4 py-2 rounded bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-400 dark:hover:bg-gray-600"
+              className="px-4 py-2 rounded bg-gray-300  text-gray-700  hover:bg-gray-400 "
             >
               Cancel
             </button>

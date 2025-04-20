@@ -8,13 +8,11 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
     return (
-        <div className="layout">
-            <div style={{ display: 'flex', height: '100%' }}>
+            <div className="flex min-h-screen">
                 <Sidebar />
                 <main style={{ flex: 1, alignItems: 'start' }}>
                     {children}
                 </main>
             </div>
-        </div>
     );
 }

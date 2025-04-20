@@ -24,7 +24,7 @@ export default function SideBar() {
   ];
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-800 shadow-md hidden md:flex md:flex-col">
+    <aside className="w-64  bg-white dark:bg-gray-800 shadow-md hidden md:flex md:flex-col">
       <div className="p-6 pb-3 border-b border-gray-200 dark:border-gray-700">
         <p className="text-2xl font-bold text-gray-800 dark:text-white">Task Flow</p>
       </div>
