@@ -26,7 +26,8 @@ router.get('/google/callback',
             maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
             path: '/'  // make cookie available for all paths
           });
-        res.json({ message: 'Login successful', token });        // Redirect to home or any other route
+          res.redirect('http://localhost:3000/');
+             // Redirect to home or any other route
     }
   );
 

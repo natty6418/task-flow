@@ -1,12 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Board, Status, Task } from "@/types/type";
 import { Layout, Plus } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { Project } from "@/types/type";
 import API from "@/services/api";
 import BoardItem from "./BoardItem";
-import Loader from "./Loader";
 // import KanbanBoard from "./KanbanBoard";
 
 
@@ -27,25 +26,25 @@ export default function BoardsList({
   projectId: string;
 }) {
   const [expandedBoardId, setExpandedBoardId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        const response = await API.get(`/board/all?projectId=${projectId}`);
-        if (response.status === 200) {
-          setBoards(response.data);
-          setLoading(false);
-          return;
-        }
-        console.error("Error fetching boards:", response.data);
-      } catch (error) {
-        console.error("Error fetching boards:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchBoards = async () => {
+  //     try {
+  //       const response = await API.get(`/board/all?projectId=${projectId}`);
+  //       if (response.status === 200) {
+  //         setBoards(response.data);
+  //         setLoading(false);
+  //         return;
+  //       }
+  //       console.error("Error fetching boards:", response.data);
+  //     } catch (error) {
+  //       console.error("Error fetching boards:", error);
+  //     }
+  //   };
 
-    fetchBoards();
-  }, [projectId, setBoards]);
+  //   fetchBoards();
+  // }, [projectId, setBoards]);
 
   const addBoard = async (newBoard: Board) => {
     try {
@@ -96,7 +95,7 @@ export default function BoardsList({
           <Plus className="w-5 h-5 text-gray-600" />
         </button>
       </div>
-      {loading ? <Loader />: <div>
+      {<div>
 
       {boards?.length > 0 ? (
         <ul className="space-y-3">

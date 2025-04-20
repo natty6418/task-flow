@@ -9,9 +9,9 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
     return (
         <div className="layout">
-            <div style={{ display: 'flex' }}>
+            <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
                 <Sidebar />
-                <main style={{ flex: 1 }}>
+                <main style={{ flex: 1, alignItems: 'start' }}>
                     {children}
                 </main>
             </div>
