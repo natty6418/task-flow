@@ -196,6 +196,82 @@ router.post("/addMember/:id", passport.authenticate("jwt", { session: false }),
         }
     });
 
+router.post("/removeMember/:id", passport.authenticate("jwt", { session: false }),
+    async (req: Request, res: Response) => {
+        const user = req.user as User;
+        if (!user) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+        const { id } = req.params;
+        if (!id) {
+            res.status(400).json({ message: "Bad Request" });
+            return;
+        }
+        const { email } = req.body;
+        if (!email) {
+            res.status(400).json({ message: "Bad Request" });
+            return;
+        }
+        // Check if the project exists
+        const project = await prisma.project.findUnique({
+            where: { id },
+        });
+        if (!project) {
+            res.status(404).json({ message: "Project not found" });
+            return;
+        }
+        // Check if the user is the owner of the project
+        const membership = await prisma.projectMember.findUnique({
+            where: {
+                userId_projectId: { userId: user.id, projectId: id }
+            }
+        });
+        if (membership && (membership.role !== "ADMIN" || project.ownerId !== user.id)) {
+            res.status(403).json({ message: "Forbidden" });
+            return;
+        }
+        // Check if the user exists
+        const member = await prisma.user.findUnique({
+            where: { email },
+            select: { id: true }
+        });
+        if (!member) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+        // Check if the user is a member of the project
+        // const existingMember = await prisma.projectMember.findUnique({
+        //     where: {
+        //         userId_projectId: { userId: member.id, projectId: id }
+        //     }
+        // });
+        // if (!existingMember) {
+        //     res.status(404).json({ message: "User is not a member of the project" });
+        //     return;
+        // }
+        try {
+            await prisma.projectMember.delete({
+                where: {
+                    userId_projectId: { userId: member.id, projectId: id }
+                }
+            });
+            await prisma.project.update({
+                where: { id },
+                data: {
+                    members: {
+                        disconnect: { id: member.id }
+                    }
+                }
+            });
+            res.status(200).json({ message: "User removed from project" });
+        }
+        catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
 router.get("/:id", passport.authenticate("jwt", { session: false }),
     async (req: Request, res: Response) => {
         const user = req.user as User;

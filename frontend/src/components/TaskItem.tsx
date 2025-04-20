@@ -23,7 +23,6 @@ function TaskItem({ task, setTasks }: TaskItemProps) {
     const [isDirty, setIsDirty] = useState(false);
 
 
-    console.log('TaskItem:', task.title);
 
   useEffect(() => {
     if (!isDirty) return;

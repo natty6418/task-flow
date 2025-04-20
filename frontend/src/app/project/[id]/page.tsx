@@ -36,7 +36,6 @@ export default function ProjectPage() {
   if (loading) return <Loader />;
 
   if (!project) return <p className="text-center text-gray-500 mt-10">Project not found.</p>;
-  console.log("Project details:", project);
   return (
     <div className="p-4">
       <ProjectDetails project={project} />
