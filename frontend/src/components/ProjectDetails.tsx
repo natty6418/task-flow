@@ -16,6 +16,8 @@ import FloatingActionButton from "./FloatingActionButton";
 import { MoreVertical } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import KanbanBoard from '@/components/kanban/KanbanBoard';
+
 
 
 export default function ProjectDetails({ project }: { project: Project }) {
@@ -190,6 +192,7 @@ export default function ProjectDetails({ project }: { project: Project }) {
           projectId={project.id}
         />
       </div>
+      <KanbanBoard boards={boards} tasks={tasks} />
 
       {/* New Task Button */}
       <FloatingActionButton

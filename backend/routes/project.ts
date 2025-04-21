@@ -467,6 +467,12 @@ router.delete("/:id", passport.authenticate("jwt", { session: false }),
             await prisma.projectMember.deleteMany({
                 where: { projectId: id },
             });
+            await prisma.board.deleteMany({
+                where: { projectId: id },
+            });
+            await prisma.task.deleteMany({
+                where: { projectId: id },
+            });
 
             // 2. Then delete the project
             await prisma.project.delete({

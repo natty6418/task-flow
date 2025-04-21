@@ -89,4 +89,6 @@ export type User = {
     GITHUB = "GITHUB"
   }
     
-  
+  export type TasksByBoard = {
+    [boardId: string]: Task[];
+  };

@@ -6,6 +6,7 @@ import ProjectDetails from "@/components/ProjectDetails";
 import Loader from "@/components/Loader";
 import {Project} from "@/types/type"; // Adjust the import path as necessary
 import { useAuth } from "@/contexts/AuthContext";
+
 import API from "@/services/api";
 
 export default function ProjectPage() {
