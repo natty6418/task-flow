@@ -306,16 +306,7 @@ router.post("/removeMember/:id", passport.authenticate("jwt", { session: false }
             res.status(404).json({ message: "User not found" });
             return;
         }
-        // Check if the user is a member of the project
-        // const existingMember = await prisma.projectMember.findUnique({
-        //     where: {
-        //         userId_projectId: { userId: member.id, projectId: id }
-        //     }
-        // });
-        // if (!existingMember) {
-        //     res.status(404).json({ message: "User is not a member of the project" });
-        //     return;
-        // }
+
         try {
             await prisma.projectMember.delete({
                 where: {
@@ -363,8 +354,12 @@ router.get("/:id", passport.authenticate("jwt", { session: false }),
                         }
                     },   
                     members: true,            
-                    tasks: true,
-                    boards: true,
+                    tasks: true, 
+                    boards: {
+                        include: {
+                            tasks: true,
+                        }
+                    },
                 }
             });
             if (!project) {

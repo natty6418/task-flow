@@ -9,16 +9,17 @@ interface NewTaskModalProps {
   projectId: string;
   onClose: () => void;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  boardId?: string; // Optional, if you want to associate the task with a specific board
 }
 
-export default function NewTaskModal({ projectId, setTasks, onClose }: NewTaskModalProps) {
+export default function NewTaskModal({ projectId, setTasks, onClose, boardId }: NewTaskModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     priority: Priority.MEDIUM,
     status: Status.TODO,
-    dueDate: '',
+    dueDate: new Date().toISOString().split('T')[0], // Default to today
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,6 +36,7 @@ export default function NewTaskModal({ projectId, setTasks, onClose }: NewTaskMo
         {
           ...formData,
           projectId,
+          boardId,
         },
         { withCredentials: true }
         );

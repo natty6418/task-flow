@@ -50,7 +50,6 @@ export default function BoardItem({
       useEffect(() => {
         if (!isDirty) return;
         const updateBoard = async () => {
-          console.log("Updating board:", debouncedBoard);
             try {
               const response = await API.put("/board/update", {
                 id: debouncedBoard.id,
@@ -199,7 +198,7 @@ export default function BoardItem({
       {isExpanded && (
         <div className="mt-4 pl-7">
           <ul className="space-y-2">
-            {boardTasks.length > 0 ? (
+            {boardTasks.length > 0 && (
               boardTasks.map((task: Task) => (
                 <li key={task.id} className="flex items-center justify-between gap-2">
                   <TaskItem
@@ -214,9 +213,7 @@ export default function BoardItem({
                   </button>
                 </li>
               ))
-            ) : (
-              <li className="text-gray-400 text-sm">No tasks yet</li>
-            )}
+            ) }
           </ul>
 
           {/* Add Task Button */}

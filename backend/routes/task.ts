@@ -71,11 +71,21 @@ router.post("/create",
             res.status(401).json({ message: "Unauthorized" })
             return
         }
-        const { title, description, dueDate, status } = req.body
-
+        const { title, description, dueDate, status, boardId } = req.body
+        console.log(req.body)
         if (!title) {
             res.status(400).json({ message: "Bad Request" })
             return
+        }
+
+        if (boardId){
+            const board = await prisma.board.findUnique({
+                where: { id: boardId }
+            })
+            if (!board) {
+                res.status(404).json({ message: "Board not found" })
+                return
+            }
         }
 
         
@@ -88,9 +98,20 @@ router.post("/create",
                     description,
                     dueDate: new Date(dueDate),
                     status: status? status : "TODO",
-
+                    boardId: boardId,
                 }
             })
+            if (boardId){
+                await prisma.board.update({
+                    where: { id: boardId },
+                    data: {
+                        tasks: {
+                            connect: { id: newTask.id }
+                        }
+                    }
+                })
+            }
+            console.log(newTask)
             res.status(200).json(newTask)
         } catch (error) {
             console.error(error)
