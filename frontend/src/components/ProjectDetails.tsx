@@ -17,6 +17,7 @@ import { MoreVertical, ListIcon, LayoutIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
+import {updateProject as updateProjectService} from "@/services/projectService";
 
 export default function ProjectDetails({ project }: { project: Project }) {
   const [name, setName] = useState(project.name);
@@ -38,20 +39,13 @@ export default function ProjectDetails({ project }: { project: Project }) {
   useEffect(() => {
     const updateProject = async () => {
       try {
-        const response = await API.put(
-          `/project/${project.id}`,
-          {
-            name: debouncedName,
-            description: debouncedDescription,
-          },
-          { withCredentials: true }
-        );
-        if (response.status === 200) {
-          // Update the local state with the new project data
+        await updateProjectService(project.id, {
+          name: debouncedName,
+          description: debouncedDescription,
+        })
           setName(debouncedName);
           setDescription(debouncedDescription);
           toast.success("Project updated successfully");
-        }
       } catch (error) {
         toast.error("Failed to update project");
         console.error("Failed to update project:", error);
@@ -170,7 +164,7 @@ export default function ProjectDetails({ project }: { project: Project }) {
 
       {/* Horizontal Layout */}
       <div className="flex flex-col  gap-6 overflow-x-auto">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-2">
           <h2 className="text-xl font-semibold">Boards</h2>
           <div className="flex gap-2">
             <button
@@ -204,7 +198,6 @@ export default function ProjectDetails({ project }: { project: Project }) {
             />
           ) : (
             <KanbanBoard
-              projectId={project.id}
               setTasks={setTasks}
               boards={boards}
               tasks={tasks}

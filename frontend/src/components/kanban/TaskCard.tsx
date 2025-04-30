@@ -2,9 +2,12 @@
 import React from 'react';
 import { Calendar } from 'lucide-react'; // Example icons (npm install lucide-react)
 import { Task, Priority } from '@/types/type';
+import { useDraggable } from '@dnd-kit/core';
+
 
 interface TaskCardProps {
   task: Task;
+  isActive: boolean;
 }
 
 // Helper function to get priority styling
@@ -17,18 +20,52 @@ const getPriorityClass = (priority: Priority): string => {
   }
 };
 
+const getTaskStatusClass = (status: string): string => {
+  switch (status) {
+    case 'TODO': return 'bg-white';
+    case 'IN_PROGRESS': return 'bg-blue-100 ';
+    case 'DONE': return 'bg-green-100 ';
+    default: return 'bg-white';
+  }
+}
+
+
 // Helper function to format date (optional)
 const formatDate = (date?: Date): string | null => {
   if (!date) return null;
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, isActive }) => {
   const formattedDueDate = formatDate(task.dueDate);
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: task.id,
+  });
+  const style: React.CSSProperties = {
+    transform: transform
+      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
+      : undefined,
+    zIndex: isActive ? 999 : 'auto',
+    position: isActive ? 'fixed' : 'relative',
+    width: isActive ? '18rem' : '100%',
+    opacity: isActive ? 0.9 : 1,
+    pointerEvents: isActive ? 'none' : 'auto',
+  };
 
   return (
-    <div className={`bg-white p-3 rounded-md shadow-sm border border-gray-200 mb-3 ${getPriorityClass(task.priority)}`}>
-      <h4 className="text-sm font-medium text-gray-800 mb-1">{task.title}</h4>
+
+    <div 
+    ref={setNodeRef}
+    {...listeners}
+    {...attributes}
+    style={style}
+    className={` p-3 rounded-md shadow-sm border w-full border-gray-200 mb-3 ${getPriorityClass(task.priority)} ` }>
+      <div className='flex items-center justify-between mb-2'>
+        <h4 className="text-sm font-medium  mb-1">{task.title}</h4>
+        <div className={`text-xs font-semibold text-gray-500 p-2 rounded-full ${getTaskStatusClass(task.status)}`}>
+          {task.status}
+        </div>
+      </div>
       {task.description && (
         <p className="text-xs text-gray-600 mb-2 line-clamp-2">{task.description}</p>
       )}
@@ -57,6 +94,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
         )}
       </div>
     </div>
+
   );
 };
 

@@ -1,85 +1,144 @@
 // components/kanban/KanbanBoard.tsx
-import React, { useMemo, useState } from 'react';
-import { Board, Task, TasksByBoard } from '@/types/type'; // Adjust path
+import React, { useMemo } from 'react';
+import {
+  DndContext,
+  closestCorners,
+  DragEndEvent,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { Board, Task, TasksByBoard } from '@/types/type';
 import BoardColumn from './BoardColumn';
-import NewTaskModal from '../NewTaskModal';
-
-
-
+import { updateBoard } from '@/services/boardService';
 
 interface KanbanBoardProps {
-  projectId: string;
-  // setBoards: React.Dispatch<React.SetStateAction<Board[]>>;
   boards: Board[];
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], projectId, setTasks }) => {
-  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-  const [selectedBoardId, setSelectedBoardId] = useState<string | undefined>();
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setTasks }) => {
+  const sensors = useSensors(useSensor(PointerSensor));
+  const [activeTaskId, setActiveTaskId] = React.useState<string | null>(null);
 
-  // Group tasks by boardId for efficient lookup
+  const sortedBoards = useMemo(() => {
+    return boards.sort((a, b) => {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+  }
+  , [boards]);
+
   const tasksByBoard = useMemo((): TasksByBoard => {
     return tasks.reduce((acc, task) => {
-      const boardId = task.boardId;
-      if (boardId) {
-        if (!acc[boardId]) {
-          acc[boardId] = [];
-        }
-        acc[boardId].push(task);
+      if (task.boardId) {
+        if (!acc[task.boardId]) acc[task.boardId] = [];
+        acc[task.boardId].push(task);
       }
       return acc;
     }, {} as TasksByBoard);
   }, [tasks]);
 
-  // Sort boards (optional - based on creation date or a specific order field)
-  const sortedBoards = useMemo(() => {
-      // Example: Sort by createdAt date. Add specific order logic if needed.
-      return [...boards].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [boards]);
+  const onDragStart = (event: DragStartEvent) => {
+    setActiveTaskId(event.active.id as string);
+  };
 
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTaskId(null);
+
+    if (!over || active.id === over.id) return;
+
+    // If task moved to a different board
+    const taskId = active.id as string;
+    const newBoardId = over.id as string;
+
+    setTasks(prev =>
+      prev.map(task => (task.id === taskId ? { ...task, boardId: newBoardId } : task))
+    );
+    const task = tasks.find(task => task.id === taskId);
+    const updatedBoard = boards.find(board => board.id === newBoardId);
+    const prevBoard = boards.find(board => board.id === task?.boardId);
+
+    if (updatedBoard && task) {
+      updateBoard({
+        id: updatedBoard.id,
+        name: updatedBoard.name,
+        projectId: updatedBoard.projectId,
+        description: updatedBoard.description,
+        status: updatedBoard.status,
+        tasks: [...updatedBoard.tasks, task],
+      }).catch(err =>{
+        console.error('Error updating board:', err);
+        // Optionally, you can revert the task state here if needed
+        setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, boardId: task.boardId } : t)));
+      })
+    }
+    if (prevBoard && task) {
+      updateBoard({
+        id: prevBoard.id,
+        name: prevBoard.name,
+        projectId: prevBoard.projectId,
+        description: prevBoard.description,
+        status: prevBoard.status,
+        tasks: prevBoard.tasks.filter(t => t.id !== taskId),
+      }).catch(err=>{
+        console.error('Error updating board:', err);
+        // Optionally, you can revert the task state here if needed
+        setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, boardId: prevBoard.id } : t)));
+      })
+    }
+
+  };
+  const handleAddTaskToBoard = (boardId: string, taskId: string) => {
+    setTasks(prev =>
+      prev.map(task => (task.id === taskId ? { ...task, boardId } : task))
+    );
+    const task = tasks.find(task => task.id === taskId);
+    const updatedBoard = boards.find(board => board.id === boardId);
+    if (updatedBoard && task) {
+      updateBoard({
+        id: updatedBoard.id,
+        name: updatedBoard.name,
+        projectId: updatedBoard.projectId,
+        description: updatedBoard.description,
+        status: updatedBoard.status,
+        tasks: [...updatedBoard.tasks, task],
+      }).catch(err=>{
+        console.error('Error updating board:', err);
+        // Optionally, you can revert the task state here if needed
+        setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, boardId: task.boardId } : t)));
+      })
+    }
+    
+  };
 
   return (
-    // Outer container enabling horizontal scrolling
-    
     <div className="overflow-x-auto p-4">
-  <div className="flex justify-center space-x-4 w-max mx-auto">
-    {sortedBoards.length > 0 ? (
-      sortedBoards.map(board => (
-        <BoardColumn
-          key={board.id}
-          board={board}
-          tasks={tasksByBoard[board.id] || []}
-          availableTasks={tasks.filter(task => !task.boardId)} // Filter tasks that are not assigned to any board
-          onAddTaskToBoard={(boardId, taskId) => {
-            setSelectedBoardId(boardId);
-            // setShowAddTaskModal(true);
-            console.log("Selected Board ID:", boardId);
-            console.log("Task ID to add:", taskId);
-            
-          }}
-        />
-      ))
-    ) : (
-      <div className="flex items-center justify-center w-full h-64">
-        <p className="text-gray-500">No boards found for this project.</p>
-      </div>
-    )}
-  </div>
-  {
-    showAddTaskModal && (
-      <NewTaskModal
-        projectId={projectId}
-        onClose={() => setShowAddTaskModal(false)}
-        boardId={selectedBoardId}
-        setTasks={setTasks}
-        // projectId={projectId} // Pass projectId if needed
-        // setTasks={setTasks} // Pass setTasks if needed
-      />
-    )}
-</div>
+      <DndContext
+        collisionDetection={closestCorners}
+        sensors={sensors}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      >
+<div className="grid grid-cols-[repeat(auto-fit,_minmax(18rem,_1fr))] gap-0 border border-gray-200 ">
 
+          {sortedBoards.map(board => (
+            <BoardColumn
+              key={board.id}
+              board={board}
+              tasks={tasksByBoard[board.id] || []}
+              availableTasks={tasks.filter(task => !task.boardId)}
+              activeTaskId={activeTaskId}
+              onAddTaskToBoard={(boardId, taskId) => {
+                handleAddTaskToBoard(boardId, taskId);
+              }}
+            />
+          ))}
+        </div>
+      </DndContext>
+    </div>
   );
 };
 

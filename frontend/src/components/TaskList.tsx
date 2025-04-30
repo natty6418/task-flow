@@ -14,7 +14,7 @@ export default function TasksList({ tasks, setTasks, setShowAddTaskModal }: { ta
       </div>
 
       {tasks?.length > 0 ? (
-        <div className="space-y-3 flex flex-wrap gap-4">
+        <div className="space-y-3 flex flex-wrap">
           {tasks.sort((a: Task, b: Task) => {
             const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
             const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;

@@ -1,43 +1,58 @@
 import API from './api';
-import { Task } from '@/types/type';
+import { AxiosError } from 'axios';
+import {  Board, Task } from '@/types/type';
 
-export interface Board {
-  id: string;
-  name: string;
-  description?: string;
-  status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
-  tasks: Task[];
-  projectId: string;
+
+
+interface ErrorResponse {
+  message: string;
 }
 
-// 🔹 Fetch all boards and their tasks in a project (GET /board/all?projectId=...)
-export const fetchBoardsByProject = async (projectId: string): Promise<Board[]> => {
-  const res = await API.get('/board/all', {
-    params: { projectId },
-  });
-  return res.data;
+const extractError = (err: unknown): string => {
+  const axiosErr = err as AxiosError;
+  return (axiosErr.response?.data as ErrorResponse)?.message || 'Something went wrong';
 };
 
-// 🔹 Create a new board in a project (POST /board/create)
+// 🔹 Fetch all boards and their tasks in a project
+export const fetchBoardsByProject = async (projectId: string): Promise<Board[]> => {
+  try {
+    const res = await API.get('/board/all', {
+      params: { projectId },
+    });
+    return res.data;
+  } catch (err) {
+    throw new Error(extractError(err));
+  }
+};
+
+// 🔹 Create a new board in a project
 export const createBoard = async (data: {
   name: string;
   projectId: string;
   description?: string;
   status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
 }): Promise<Board> => {
-  const res = await API.post('/board/create', data);
-  return res.data;
+  try {
+    const res = await API.post('/board/create', data);
+    return res.data;
+  } catch (err) {
+    throw new Error(extractError(err));
+  }
 };
 
-// 🔹 Update a board (PUT /board/update)
+// 🔹 Update a board
 export const updateBoard = async (data: {
   id: string;
   name: string;
   projectId: string;
   description?: string;
   status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
-  tasks: { id: string }[]; // Only IDs are required to connect tasks
+  tasks: Task[];
 }): Promise<Board> => {
-  const res = await API.put('/board/update', data);
-  return res.data;
+  try {
+    const res = await API.put('/board/update', data);
+    return res.data;
+  } catch (err) {
+    throw new Error(extractError(err));
+  }
 };
