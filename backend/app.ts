@@ -10,6 +10,7 @@ import project from "./routes/project";
 import { NextFunction } from "express";
 import task from "./routes/task";
 import board from "./routes/board";
+import session from 'express-session';
 
 
 dotenv.config();
@@ -27,7 +28,20 @@ app.use(cors({
 
 
 app.use(cookieParser());
+app.use(
+  session({
+    secret: process.env.JWT_SECRET || 'some-random-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // true if using HTTPS
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+    },
+  })
+);
 app.use(passport.initialize());
+app.use(passport.session());
+
 
 
 

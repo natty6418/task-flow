@@ -18,16 +18,14 @@ export default function SideBar() {
   }, [pathname]);
 
   const navItems = [
-    { name: "Dashboard", icon: LayoutDashboard, href: "/" },
+    { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
     { name: "Profile", icon: User, href: "/profile" },
     { name: "Settings", icon: Settings, href: "/settings" },
   ];
 
   return (
-    <aside className="w-64  bg-white dark:bg-gray-800 shadow-md hidden md:flex md:flex-col">
-      <div className="p-6 pb-3 border-b border-gray-200 dark:border-gray-700">
-        <p className="text-2xl font-bold text-gray-800 dark:text-white">Task Flow</p>
-      </div>
+    <aside className="w-64 bg-white dark:bg-gray-800 shadow-md hidden md:flex md:flex-col border-r border-gray-200 dark:border-gray-700">
+     
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = currentPath === item.href;

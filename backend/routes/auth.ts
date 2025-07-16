@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import prisma from '../models/prismaClient';
 
 
+
 const router = express.Router();
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 

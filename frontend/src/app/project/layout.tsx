@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Sidebar from '@/components/SideBar';
+import Header from '@/components/Header';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -8,11 +9,20 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
     return (
-            <div className="flex min-h-screen">
+        <div className="flex flex-col h-screen bg-gray-100">
+            {/* Header */}
+            <Header />
+
+            {/* Content Area with Sidebar and Main Content */}
+            <div className="flex flex-1 overflow-hidden">
+                {/* Sidebar */}
                 <Sidebar />
-                <main style={{ flex: 1, alignItems: 'start' }}>
+
+                {/* Main Content */}
+                <main className="flex-1 overflow-auto">
                     {children}
                 </main>
             </div>
+        </div>
     );
 }

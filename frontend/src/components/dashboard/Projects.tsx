@@ -19,7 +19,7 @@ const Projects: React.FC<ProjectsProps> = ({ projects }) => {
             >
               <Link href={`project/${project.id}`} className="font-medium text-gray-800 underline">{project.name}</Link>
               <div className="flex -space-x-2">
-                {project.members.slice(0, 3).map((member) => (
+                {project?.members?.slice(0, 3).map((member) => (
                   <div
                     key={member.id}
                     title={member.name}
@@ -28,9 +28,9 @@ const Projects: React.FC<ProjectsProps> = ({ projects }) => {
                     {member.name.charAt(0).toUpperCase()}
                   </div>
                 ))}
-                {project.members.length > 3 && (
+                {project?.members?.length > 3 && (
                   <div className="w-6 h-6 rounded-full bg-gray-300 text-gray-700 text-xs flex items-center justify-center">
-                    +{project.members.length - 3}
+                    +{project?.members?.length - 3}
                   </div>
                 )}
               </div>

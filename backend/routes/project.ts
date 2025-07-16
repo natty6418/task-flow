@@ -17,11 +17,18 @@ router.post("/create", passport.authenticate("jwt", { session: false }),
 
         try {
             // 1. Create the project
-            const project = await prisma.project.create({
+            let project = await prisma.project.create({
                 data: {
                     name,
                     description,
                     ownerId: user.id,
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    ownerId: true,
+                    createdAt: true, // add/remove fields as needed
                 }
             });
 
@@ -33,16 +40,25 @@ router.post("/create", passport.authenticate("jwt", { session: false }),
                     role: "ADMIN",  
                 }
             });
-            await prisma.project.update({
+            project = await prisma.project.update({
                 where: { id: project.id },
                 data: {
                     members: {
                         connect: { id: user.id }
                     }
+                },
+                include: {
+                    members: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        }
+                    }
                 }
             });
 
-            res.status(201).json(project);
+            res.status(201).json({ ...project });
 
         } catch (error) {
             console.error(error);

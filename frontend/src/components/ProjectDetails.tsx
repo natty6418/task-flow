@@ -197,11 +197,32 @@ export default function ProjectDetails({ project }: { project: Project }) {
               setShowAddBoardModal={setShowAddBoardModal}
             />
           ) : (
-            <KanbanBoard
-              setTasks={setTasks}
-              boards={boards}
-              tasks={tasks}
-            />
+            <div>
+              {boards.length > 0 ? (
+                <KanbanBoard
+                  setTasks={setTasks}
+                  boards={boards}
+                  tasks={tasks}
+                  onAddBoard={() => setShowAddBoardModal(true)}
+                />
+              ) : (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="max-w-md mx-auto">
+                    <LayoutIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No boards yet</h3>
+                    <p className="text-gray-500 mb-6">
+                      Create your first board to start organizing tasks in a kanban view
+                    </p>
+                    <button
+                      onClick={() => setShowAddBoardModal(true)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      Create your first board
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -223,6 +244,7 @@ export default function ProjectDetails({ project }: { project: Project }) {
         setShowAddBoardModal={setShowAddBoardModal}
         setShowAddMemberModal={setShowAddMemberModal}
         setShowTaskModal={setShowTaskModal}
+        setShowCreateProjectModal={() => {}} // Not needed in project context
       />
 
       {/* New Task Modal */}

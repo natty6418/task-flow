@@ -44,7 +44,7 @@ export default function CalendarWidget() {
         />
         {dayTasks.length > 0 && (
           <div className="absolute bottom-[4px] left-1/2 -translate-x-1/2 flex gap-[2px]">
-            {dayTasks.slice(0, 3).map((task, index) => {
+            {dayTasks.length > 2? dayTasks.slice(0, 3).map((task, index) => {
               const color =
                 task.status === 'DONE'
                   ? 'bg-green-500'
@@ -57,7 +57,22 @@ export default function CalendarWidget() {
                   className={`w-1.5 h-1.5 rounded-full ${color}`}
                 />
               );
-            })}
+            }):
+            dayTasks.map((task, index)=>{
+              const color =
+                task.status === 'DONE'
+                  ? 'bg-green-500'
+                  : task.status === 'IN_PROGRESS'
+                  ? 'bg-blue-400'
+                  : 'bg-gray-400';
+              return (
+                <span
+                  key={index}
+                  className={`w-1.5 h-1.5 rounded-full ${color}`}
+                />
+              );
+            })
+            }
           </div>
         )}
       </div>

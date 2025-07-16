@@ -18,6 +18,7 @@ export const createProject = async (data: {
 }): Promise<Project> => {
   try {
     const res = await API.post('/project/create', data);
+    console.log("project created", res.data)
     return res.data;
   } catch (err) {
     throw new Error(extractError(err));

@@ -12,14 +12,16 @@ import {
 import { Board, Task, TasksByBoard } from '@/types/type';
 import BoardColumn from './BoardColumn';
 import { updateBoard } from '@/services/boardService';
+import { Plus } from 'lucide-react';
 
 interface KanbanBoardProps {
   boards: Board[];
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  onAddBoard?: () => void;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setTasks }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setTasks, onAddBoard }) => {
   const sensors = useSensors(useSensor(PointerSensor));
   const [activeTaskId, setActiveTaskId] = React.useState<string | null>(null);
 
@@ -122,8 +124,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setT
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-<div className="grid grid-cols-[repeat(auto-fit,_minmax(18rem,_1fr))] gap-0 border border-gray-200 ">
-
+        <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden">
           {sortedBoards.map(board => (
             <BoardColumn
               key={board.id}
@@ -136,6 +137,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setT
               }}
             />
           ))}
+          
+          {/* Add Board Column */}
+          {onAddBoard && (
+            <div className="min-w-72 bg-gray-50 border-l border-gray-200 flex flex-col items-center justify-center p-8">
+              <button
+                onClick={onAddBoard}
+                className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors group"
+              >
+                <Plus className="w-8 h-8 text-gray-400 group-hover:text-blue-500" />
+                <span className="text-sm font-medium text-gray-600 group-hover:text-blue-600">
+                  Add Board
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </DndContext>
     </div>
