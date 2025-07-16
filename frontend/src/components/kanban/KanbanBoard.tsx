@@ -8,9 +8,11 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
 } from '@dnd-kit/core';
 import { Board, Task, TasksByBoard } from '@/types/type';
 import BoardColumn from './BoardColumn';
+import TaskCard from './TaskCard';
 import { updateBoard } from '@/services/boardService';
 import { Plus } from 'lucide-react';
 
@@ -18,19 +20,30 @@ interface KanbanBoardProps {
   boards: Board[];
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  setBoards: React.Dispatch<React.SetStateAction<Board[]>>;
+  projectId: string;
   onAddBoard?: () => void;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setTasks, onAddBoard }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setTasks, setBoards, projectId, onAddBoard }) => {
   const sensors = useSensors(useSensor(PointerSensor));
-  const [activeTaskId, setActiveTaskId] = React.useState<string | null>(null);
+  const [activeTask, setActiveTask] = React.useState<Task | null>(null);
 
   const sortedBoards = useMemo(() => {
     return boards.sort((a, b) => {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
-  }
-  , [boards]);
+  }, [boards]);
+
+  // Calculate dynamic column width based on number of boards
+  const getColumnWidth = () => {
+    const boardCount = boards.length;
+    if (boardCount === 0) return 'min-w-80';
+    if (boardCount === 1) return 'min-w-96 max-w-2xl';
+    if (boardCount === 2) return 'min-w-80 max-w-xl';
+    if (boardCount === 3) return 'min-w-72 max-w-lg';
+    return 'min-w-64 max-w-sm';
+  };
 
   const tasksByBoard = useMemo((): TasksByBoard => {
     return tasks.reduce((acc, task) => {
@@ -43,12 +56,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setT
   }, [tasks]);
 
   const onDragStart = (event: DragStartEvent) => {
-    setActiveTaskId(event.active.id as string);
+    const task = tasks.find(t => t.id === event.active.id);
+    setActiveTask(task || null);
   };
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveTaskId(null);
+    setActiveTask(null);
 
     if (!over || active.id === over.id) return;
 
@@ -70,7 +84,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setT
         projectId: updatedBoard.projectId,
         description: updatedBoard.description,
         status: updatedBoard.status,
-        tasks: [...updatedBoard.tasks, task],
+        tasks: [...updatedBoard.tasks, {
+          ...task,
+          boardId: newBoardId,
+        }],
       }).catch(err =>{
         console.error('Error updating board:', err);
         // Optionally, you can revert the task state here if needed
@@ -124,26 +141,29 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setT
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-        <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden">
+        <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden justify-center min-w-fit">
           {sortedBoards.map(board => (
-            <BoardColumn
-              key={board.id}
-              board={board}
-              tasks={tasksByBoard[board.id] || []}
-              availableTasks={tasks.filter(task => !task.boardId)}
-              activeTaskId={activeTaskId}
-              onAddTaskToBoard={(boardId, taskId) => {
-                handleAddTaskToBoard(boardId, taskId);
-              }}
-            />
+            <div key={board.id} className={`${getColumnWidth()} flex-shrink-0`}>
+              <BoardColumn
+                board={board}
+                tasks={tasksByBoard[board.id] || []}
+                availableTasks={tasks.filter(task => !task.boardId)}
+                activeTask={activeTask}
+                setBoards={setBoards}
+                projectId={projectId}
+                onAddTaskToBoard={(boardId, taskId) => {
+                  handleAddTaskToBoard(boardId, taskId);
+                }}
+              />
+            </div>
           ))}
           
           {/* Add Board Column */}
           {onAddBoard && (
-            <div className="min-w-72 bg-gray-50 border-l border-gray-200 flex flex-col items-center justify-center p-8">
+            <div className={`${getColumnWidth()} flex-shrink-0 bg-gray-50 border-l border-gray-200 flex flex-col items-center justify-center p-8`}>
               <button
                 onClick={onAddBoard}
-                className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors group"
+                className="flex flex-col items-center gap-3 p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors group w-full max-w-xs"
               >
                 <Plus className="w-8 h-8 text-gray-400 group-hover:text-blue-500" />
                 <span className="text-sm font-medium text-gray-600 group-hover:text-blue-600">
@@ -153,6 +173,14 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boards = [], tasks = [], setT
             </div>
           )}
         </div>
+        
+        <DragOverlay>
+          {activeTask ? (
+            <div className="transform">
+              <TaskCard task={activeTask} isActive={true} />
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );

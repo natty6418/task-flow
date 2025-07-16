@@ -122,7 +122,7 @@ router.put("/update",
             tasks,
             projectId
         } = req.body;
-        console.log(req.body)
+        console.log("updating...", req.body)
         if (!id || !name || !projectId) {
             res.status(400).json({ message: "Bad Request" });
             return;

@@ -41,25 +41,17 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isActive }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: task.id,
   });
-  const style: React.CSSProperties = {
-    transform: transform
-      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined,
-    zIndex: isActive ? 999 : 'auto',
-    position: isActive ? 'fixed' : 'relative',
-    width: isActive ? '18rem' : '100%',
-    opacity: isActive ? 0.9 : 1,
-    pointerEvents: isActive ? 'none' : 'auto',
-  };
 
   return (
-
     <div 
-    ref={setNodeRef}
-    {...listeners}
-    {...attributes}
-    style={style}
-    className={` p-3 rounded-md shadow-sm border w-full border-gray-200 mb-3 ${getPriorityClass(task.priority)} ` }>
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`p-3 rounded-md shadow-sm border w-full border-gray-200 mb-3 transition-opacity ${getPriorityClass(task.priority)} ${isActive ? 'opacity-50' : 'opacity-100'}`}
+      {...(transform && !isActive && { 
+        style: { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } 
+      })}
+    >
       <div className='flex items-center justify-between mb-2'>
         <h4 className="text-sm font-medium  mb-1">{task.title}</h4>
         <div className={`text-xs font-semibold text-gray-500 p-2 rounded-full ${getTaskStatusClass(task.status)}`}>

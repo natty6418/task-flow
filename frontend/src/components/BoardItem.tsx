@@ -208,6 +208,8 @@ export default function BoardItem({
                   <button
                     onClick={() => handleRemoveTaskFromBoard(board.id, task.id)}
                     className="text-red-500 hover:text-red-700"
+                    title="Remove task from board"
+                    
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

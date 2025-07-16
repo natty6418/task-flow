@@ -105,6 +105,8 @@ export default function ProjectDetails({ project }: { project: Project }) {
           <button
             onClick={() => setMenuOpen((prev) => !prev)}
             className="p-1 rounded hover:bg-gray-100"
+            title="Project options"
+            aria-label="Project options"
           >
             <MoreVertical className="w-5 h-5 text-gray-500" />
           </button>
@@ -172,6 +174,7 @@ export default function ProjectDetails({ project }: { project: Project }) {
               className={`p-2 rounded ${
                 boardView === "list" ? "bg-gray-200" : "hover:bg-gray-100"
               }`}
+              title="List view"
             >
               <ListIcon className="w-5 h-5" />
             </button>
@@ -180,6 +183,7 @@ export default function ProjectDetails({ project }: { project: Project }) {
               className={`p-2 rounded ${
                 boardView === "kanban" ? "bg-gray-200" : "hover:bg-gray-100"
               }`}
+              title="Kanban view"
             >
               <LayoutIcon className="w-5 h-5" />
             </button>
@@ -201,6 +205,8 @@ export default function ProjectDetails({ project }: { project: Project }) {
               {boards.length > 0 ? (
                 <KanbanBoard
                   setTasks={setTasks}
+                  setBoards={setBoards}
+                  projectId={project.id}
                   boards={boards}
                   tasks={tasks}
                   onAddBoard={() => setShowAddBoardModal(true)}
