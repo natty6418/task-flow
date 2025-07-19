@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+# TaskFlow
+
+> A modern, collaborative project and task management app built with Next.js, React, and Tailwind CSS.
+
+## Features
+
+- 🏠 **Dashboard**: Get a quick overview of your projects, boards, and recent activity.
+- 📋 **Projects & Boards**: Organize your work into projects, each with its own Kanban boards and tasks.
+- ✅ **Task Management**: Create, edit, prioritize, and track tasks with due dates, priorities, and statuses (To Do, In Progress, Done).
+- 👥 **Collaboration**: Add members to projects, assign tasks, and manage team roles.
+- 🔔 **Notifications**: Manage how you receive updates about tasks, mentions, and project activity.
+- ⚙️ **Settings**: Personalize your profile, account, notification preferences, and more.
+- 🌙 **Appearance**: Switch between light, dark, or system themes.
+- 🔌 **Integrations**: (Planned) Connect with tools like Slack and Google Calendar.
 
 ## Getting Started
 
-First, run the development server:
+1. **Install dependencies:**
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. **Run the development server:**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. **Open your browser:**
+   Visit [http://localhost:3000](http://localhost:3000) to use TaskFlow.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Folder Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/app/` — App routes and pages (dashboard, login, signup, project, settings, etc.)
+- `src/components/` — Reusable UI components (modals, lists, kanban, settings, etc.)
+- `src/contexts/` — React context providers (e.g., authentication)
+- `src/services/` — API and data service logic
+- `src/types/` — TypeScript types and enums
+- `public/` — Static assets
 
-## Learn More
+## Customization
 
-To learn more about Next.js, take a look at the following resources:
+- **Styling:** Uses Tailwind CSS for rapid UI development and theming.
+- **Icons:** Uses [Lucide](https://lucide.dev/) for modern, consistent icons.
+- **Fonts:** Uses [Geist](https://vercel.com/font) for a clean, readable interface.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Pull requests and issues are welcome! Please open an issue to discuss your ideas or report bugs.
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
