@@ -38,8 +38,6 @@ export default function ProjectPage() {
 
   if (!project) return <p className="text-center text-gray-500 mt-10">Project not found.</p>;
   return (
-    <div className="p-4">
-      <ProjectDetails project={project} />
-    </div>
+    <ProjectDetails project={project} />
   );
 }

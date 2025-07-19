@@ -1,23 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import TasksList from "@/components/TaskList";
-import BoardsList from "@/components/BoardsList";
-import MembersList from "@/components/MembersList";
 import NewTaskModal from "./NewTaskModal";
-
 import { Project } from "@/types/type";
 import { useDebounce } from "use-debounce";
 import API from "@/services/api";
 import toast from "react-hot-toast";
 import AddMemberModal from "@/components/AddMemberModal";
 import AddBoardModal from "./AddBoardModal";
-import FloatingActionButton from "./FloatingActionButton";
-import { MoreVertical, ListIcon, LayoutIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import KanbanBoard from "@/components/kanban/KanbanBoard";
 import {updateProject as updateProjectService} from "@/services/projectService";
+import { Role } from "@/types/type";
+import FloatingActionButton from "./FloatingActionButton";
+import { Task, Status, Priority } from "@/types/type";
+import { v4 as uuidv4 } from "uuid";
+import ProjectHeader from "./project/ProjectHeader";
+import ProjectMainContent from "./project/ProjectMainContent";
+import ProjectStatsPanel from "./project/ProjectStatsPanel";
+import ProjectMembersPanel from "./project/ProjectMembersPanel";
+import ProjectRecentTasksPanel from "./project/ProjectRecentTasksPanel";
 
 export default function ProjectDetails({ project }: { project: Project }) {
   const [name, setName] = useState(project.name);
@@ -29,12 +31,30 @@ export default function ProjectDetails({ project }: { project: Project }) {
   const [showAddBoardModal, setShowAddBoardModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [boardView, setBoardView] = useState<"list" | "kanban">("kanban");
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const [debouncedName] = useDebounce(name, 2000);
   const [debouncedDescription] = useDebounce(description, 2000);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { setProjects } = useAuth();
+  const { setProjects, user } = useAuth();
   const router = useRouter();
+
+  const isAdmin = members.some((m) => m.user.id === user?.id && m.role === Role.ADMIN);
+
+  const handleRemoveMember = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this member?")) return;
+
+    try {
+      setRemovingId(id);
+      await API.post(`/project/removeMember/${project.id}`, { memberId: id }, { withCredentials: true });
+      setMembers((prev) => prev.filter((m) => m.user.id !== id));
+    } catch (error) {
+      console.error("Error removing member:", error);
+      toast.error("Failed to remove member.");
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   useEffect(() => {
     const updateProject = async () => {
@@ -76,8 +96,6 @@ export default function ProjectDetails({ project }: { project: Project }) {
         setProjects((prevProjects) =>
           prevProjects.filter((proj) => proj.id !== projectId)
         );
-
-        // Optionally, you can redirect or update the UI after successful deletion
         router.push("/");
         router.refresh();
       }
@@ -86,7 +104,6 @@ export default function ProjectDetails({ project }: { project: Project }) {
       console.error("Failed to remove project:", error);
     }
   };
-  // Confirm before leaving the project
 
   const confirmLeave = () => {
     const confirmed = window.confirm(
@@ -97,163 +114,113 @@ export default function ProjectDetails({ project }: { project: Project }) {
     }
   };
 
-  const EditableHeader = () => {
-    return (
-      <div className="bg-white p-6 rounded-xl shadow-sm relative">
-        {/* Dropdown Button */}
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={() => setMenuOpen((prev) => !prev)}
-            className="p-1 rounded hover:bg-gray-100"
-            title="Project options"
-            aria-label="Project options"
-          >
-            <MoreVertical className="w-5 h-5 text-gray-500" />
-          </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-10">
-              <button
-                onClick={confirmLeave}
-                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-              >
-                Leave Project
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Editable Header */}
-        <div className="flex flex-col items-center mb-4">
-          <h1
-            contentEditable
-            suppressContentEditableWarning
-            onBlur={(e) => setName(e.target.innerText)}
-            className="text-3xl font-bold focus:outline-none"
-          >
-            {name}
-          </h1>
-
-          <p
-            contentEditable
-            suppressContentEditableWarning
-            onBlur={(e) => setDescription(e.target.innerText)}
-            className="text-gray-600 focus:outline-none"
-          >
-            {description}
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span>{project.members.length} members</span>
-            <span>{project.tasks.length} tasks</span>
-            <span>{project.boards.length} boards</span>
-          </div>
-          <p className="text-sm text-gray-500">
-            Created on {new Date(project.createdAt).toLocaleDateString()}
-          </p>
-        </div>
-      </div>
-    );
+  const handleAddTask = () => {
+    const newTask: Task = {
+      id: `temp-${uuidv4()}`,
+      title: "New Task",
+      description: "",
+      status: Status.TODO,
+      priority: Priority.MEDIUM,
+      dueDate: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  
+    setTasks((prev) => [newTask, ...prev]);
+  
+    const addTask = async () => {
+      try {
+        const response = await API.post(
+          `/task/create`,
+          { ...newTask },
+          { withCredentials: true }
+        );
+  
+        if (response.status !== 200) {
+          throw new Error("Failed to create task");
+        }
+  
+        const savedTask = response.data;
+        setTasks((prev) =>
+          prev.map((task) => (task.id === newTask.id ? savedTask : task))
+        );
+      } catch (error) {
+        console.error("Failed to create task:", error);
+        setTasks((prev) => prev.filter((task) => task.id !== newTask.id));
+      }
+    };
+  
+    addTask();
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* Editable Header */}
-      <EditableHeader />
+    <div className="min-h-screen bg-gray-50">
+      <div className="w-full mx-auto px-4 py-6">
+        {/* Project Header */}
+        <ProjectHeader
+          name={name}
+          description={description}
+          project={project}
+          setName={setName}
+          setDescription={setDescription}
+          menuOpen={menuOpen}
+          setMenuOpen={setMenuOpen}
+          confirmLeave={confirmLeave}
+        />
 
-      {/* Horizontal Layout */}
-      <div className="flex flex-col  gap-6 overflow-x-auto">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-semibold">Boards</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setBoardView("list")}
-              className={`p-2 rounded ${
-                boardView === "list" ? "bg-gray-200" : "hover:bg-gray-100"
-              }`}
-              title="List view"
-            >
-              <ListIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setBoardView("kanban")}
-              className={`p-2 rounded ${
-                boardView === "kanban" ? "bg-gray-200" : "hover:bg-gray-100"
-              }`}
-              title="Kanban view"
-            >
-              <LayoutIcon className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+        {/* Floating Action Button */}
+        <FloatingActionButton
+          setShowAddBoardModal={setShowAddBoardModal}
+          setShowTaskModal={setShowTaskModal}
+          setShowAddMemberModal={setShowAddMemberModal}
+        />
 
-        <div>
-          {boardView === "list" ? (
-            <BoardsList
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Left Column - Main Content */}
+          <div className="xl:col-span-3">
+            <ProjectMainContent
+              project={project}
               boards={boards}
               tasks={tasks}
-              projectId={project.id}
+              boardView={boardView}
+              setBoardView={setBoardView}
               setTasks={setTasks}
               setBoards={setBoards}
               setShowAddBoardModal={setShowAddBoardModal}
+              handleAddTask={handleAddTask}
             />
-          ) : (
-            <div>
-              {boards.length > 0 ? (
-                <KanbanBoard
-                  setTasks={setTasks}
-                  setBoards={setBoards}
-                  projectId={project.id}
-                  boards={boards}
-                  tasks={tasks}
-                  onAddBoard={() => setShowAddBoardModal(true)}
-                />
-              ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <div className="max-w-md mx-auto">
-                    <LayoutIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No boards yet</h3>
-                    <p className="text-gray-500 mb-6">
-                      Create your first board to start organizing tasks in a kanban view
-                    </p>
-                    <button
-                      onClick={() => setShowAddBoardModal(true)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      Create your first board
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          </div>
+
+          {/* Right Column - Sidebar */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Project Stats Panel */}
+            <ProjectStatsPanel
+              tasks={tasks}
+              members={members}
+              boards={boards}
+            />
+
+            {/* Team Members Panel */}
+            <ProjectMembersPanel
+              members={members}
+              isAdmin={isAdmin}
+              user={user}
+              setShowAddMemberModal={setShowAddMemberModal}
+              handleRemoveMember={handleRemoveMember}
+              removingId={removingId}
+            />
+
+            {/* Recent Tasks Panel */}
+            <ProjectRecentTasksPanel
+              tasks={tasks}
+              setShowTaskModal={setShowTaskModal}
+            />
+          </div>
         </div>
-
       </div>
-        <TasksList
-          tasks={tasks}
-          setShowAddTaskModal={setShowTaskModal}
-          setTasks={setTasks}
-        />
-        <MembersList
-          members={members}
-          setMembers={setMembers}
-          setShowAddMemberModal={setShowAddMemberModal}
-          projectId={project.id}
-        />
 
-      {/* New Task Button */}
-      <FloatingActionButton
-        setShowAddBoardModal={setShowAddBoardModal}
-        setShowAddMemberModal={setShowAddMemberModal}
-        setShowTaskModal={setShowTaskModal}
-        setShowCreateProjectModal={() => {}} // Not needed in project context
-      />
-
-      {/* New Task Modal */}
+      {/* Modals */}
       {showTaskModal && (
         <NewTaskModal
           projectId={project.id}
@@ -265,18 +232,14 @@ export default function ProjectDetails({ project }: { project: Project }) {
         <AddMemberModal
           projectId={project.id}
           setMembers={setMembers}
-          onClose={() => {
-            setShowAddMemberModal(false);
-          }}
+          onClose={() => setShowAddMemberModal(false)}
         />
       )}
       {showAddBoardModal && (
         <AddBoardModal
           projectId={project.id}
           setBoards={setBoards}
-          onClose={() => {
-            setShowAddBoardModal(false);
-          }}
+          onClose={() => setShowAddBoardModal(false)}
         />
       )}
     </div>

@@ -6,7 +6,6 @@ import { useDebounce } from 'use-debounce';
 import API from '@/services/api';
 
 interface BoardColumnProps {
-  activeTaskId?: string | null;
   activeTask?: Task | null;
   board: Board;
   tasks: Task[];
@@ -23,7 +22,6 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
   tasks,
   availableTasks = [],
   onAddTaskToBoard,
-  activeTaskId,
   activeTask,
   setBoards,
   projectId,
@@ -39,13 +37,13 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
   const getBoardStatusClass = (status: string): string => {
     switch (status) {
       case 'TODO':
-        return 'border-t-2 border-t-gray-400 bg-white';
+        return 'bg-gradient-to-r from-slate-500 to-gray-500';
       case 'IN_PROGRESS':
-        return 'border-t-2 border-t-indigo-500 bg-white';
+        return 'bg-gradient-to-r from-blue-500 to-indigo-500';
       case 'DONE':
-        return 'border-t-2 border-t-lime-500 bg-white';
+        return 'bg-gradient-to-r from-green-500 to-emerald-500';
       default:
-        return 'border-t-2 border-t-gray-200 bg-white';
+        return 'bg-gradient-to-r from-gray-400 to-gray-500';
     }
   };
     useEffect(() => {
@@ -119,81 +117,114 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col border-r border-b border-gray-200 bg-white min-h-[500px] ${
-        isOver ? 'bg-blue-100' : ''
+      className={`bg-white/70 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 min-h-[500px] ${
+        isOver ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-50/70' : ''
       }`}
     >
-      {/* Header with Add Button */}
-      <div className={`flex flex-col gap-2 p-3 border-b border-gray-200 ${getBoardStatusClass(boardStatus)}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1">
+      {/* Modern Header */}
+      <div className="p-4 border-b border-gray-200/50">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3 flex-1">
+            <div className={`w-3 h-3 rounded-full ${getBoardStatusClass(boardStatus)}`} />
             <h3 
               contentEditable
               suppressContentEditableWarning
               onBlur={(e) => handleEditBoardName(e.currentTarget.innerText)}
-              className="text-sm font-semibold text-gray-700 uppercase tracking-wide outline-none focus:bg-blue-50 px-1 rounded"
+              className="text-sm font-bold text-gray-800 tracking-wide outline-none focus:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
             >
               {board.name}
             </h3>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowTaskList(prev => !prev)}
-              className="text-xs px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
             >
-              {showTaskList ? 'Cancel' : '+ Add'}
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {showTaskList ? 'Cancel' : 'Add Task'}
             </button>
+            <div className="flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-600 rounded-full text-xs font-bold">
+              {tasks.length}
+            </div>
           </div>
-          <span className="text-xs font-medium text-gray-500 bg-gray-200 rounded-full px-2 py-0.5">
-            {tasks.length}
-          </span>
         </div>
         
-        {/* Editable Description */}
+        {/* Description */}
         {(board.description !== undefined || isDirty) && (
           <div
             contentEditable
             suppressContentEditableWarning
             onBlur={(e) => handleEditBoardDescription(e.currentTarget.innerText)}
-            className="text-xs text-gray-600 outline-none focus:bg-blue-50 px-1 rounded h-4"
+            className="text-xs text-gray-600 bg-gray-50 rounded-lg p-2 outline-none focus:bg-blue-50 focus:ring-2 focus:ring-blue-200 transition-colors"
+            title="Add a description..."
           >
             {board.description || 'Add a description...'}
           </div>
         )}
       </div>
 
-      {/* Task Selector (Dropdown) */}
+      {/* Task Selector */}
       {showTaskList && (
-        <div className="px-3 pt-2">
-          <div className="border border-gray-200 rounded shadow-sm bg-white max-h-40 overflow-y-auto">
+        <div className="p-4 border-b border-gray-200/50">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm max-h-40 overflow-y-auto scrollbar-hide">
             {availableTasks.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center p-2">No available tasks</p>
-            ) : (
-              availableTasks.map(task => (
-                <div
-                  key={task.id}
-                  className="p-2 text-sm hover:bg-blue-50 cursor-pointer"
-                  onClick={() => handleAddTask(task.id)}
-                >
-                  {task.title}
+              <div className="p-4 text-center">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
                 </div>
-              ))
+                <p className="text-sm text-gray-500">No available tasks</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {availableTasks.map(task => (
+                  <div
+                    key={task.id}
+                    className="p-3 hover:bg-blue-50 cursor-pointer transition-colors group"
+                    onClick={() => handleAddTask(task.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                        {task.title}
+                      </span>
+                      <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Task List */}
-      <div className="flex-grow p-3 overflow-y-auto min-h-[100px] max-h-[calc(100vh-250px)]">
-        {tasks.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center mt-4">No tasks yet</p>
-        ) : (
-          tasks.map(task => (
-            <TaskCard 
-              key={task.id} 
-              task={task} 
-              isActive={activeTask?.id === task.id} 
-            />
-          ))
-        )}
+      {/* Tasks Area */}
+      <div className="p-4 flex-grow overflow-y-auto max-h-[calc(100vh-350px)] scrollbar-hide">
+        <div className="space-y-3">
+          {tasks.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500 mb-2">No tasks yet</p>
+              <p className="text-xs text-gray-400">Add your first task to get started</p>
+            </div>
+          ) : (
+            tasks.map(task => (
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                isActive={activeTask?.id === task.id} 
+              />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
