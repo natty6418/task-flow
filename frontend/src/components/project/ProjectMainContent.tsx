@@ -35,7 +35,7 @@ export default function ProjectMainContent({
   handleRemoveTask,
   updatingTasks,
 }: ProjectMainContentProps) {
-  const [activeTab, setActiveTab] = useState<"boards" | "tasks">("tasks");
+  const [activeTab, setActiveTab] = useState<"boards" | "tasks">("boards");
 
   return (
     <div className="space-y-6">

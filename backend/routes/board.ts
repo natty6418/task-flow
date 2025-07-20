@@ -77,18 +77,7 @@ router.post("/create",
       return;
     }
 
-    // Check task exists and belongs to the project
-    // const task = await prisma.task.findFirst({
-    //     where: {
-    //         id: taskId,
-    //         projectId
-    //     }
-    // });
-
-    // if (!task) {
-    //     res.status(404).json({ message: "Task not found or doesn't belong to project" });
-    //     return;
-    // }
+   
 
     try {
       const board = await prisma.board.create({
@@ -122,7 +111,7 @@ router.put("/update",
       description,
       status,
       tasks,
-      projectId
+      projectId,
     } = req.body;
     // console.log("updating...", req.body)
     if (!id || !name || !projectId) {
@@ -168,20 +157,61 @@ router.put("/update",
     }
 
     try {
-      const updatedBoard = await prisma.board.update({
-        where: { id },
-        data: {
-          name,
-          description: description || "",
-          status: status || "TODO",
-          tasks: {
-            set: tasks.map((task: Task) => ({ id: task.id }))
-          }
+      const updatedBoard = await prisma.$transaction(async (tx) => {
+        // 1. Get current tasks on the board
+        const currentBoard = await tx.board.findUnique({
+          where: { id },
+          select: { tasks: { select: { id: true } } },
+        });
+        const currentTaskIds = currentBoard?.tasks.map(t => t.id) || [];
+        const newTaskIds = tasks.map((task: Task) => task.id);
+
+        // 2. Identify tasks to be removed from this board
+        const removedTaskIds = currentTaskIds.filter(taskId => !newTaskIds.includes(taskId));
+
+        // 3. Update tasks that are being removed from this board to have boardId = null
+        if (removedTaskIds.length > 0) {
+          await tx.task.updateMany({
+            where: {
+              id: { in: removedTaskIds },
+              boardId: id, // Make sure we only un-assign from the current board
+            },
+            data: {
+              boardId: null,
+            },
+          });
         }
+
+        // 4. Update the board with the new set of tasks.
+        // Prisma will handle setting the boardId for newly associated tasks.
+        return tx.board.update({
+          where: { id },
+          data: {
+            name,
+            description: description || "",
+            status: status || "TODO",
+            tasks: {
+              set: tasks.map((task: Task) => ({ id: task.id })),
+            },
+          },
+          include: {
+            tasks: {
+              select: {
+                title: true,
+                boardId: true,
+              },
+            },
+            project: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        });
       });
 
+      console.log("Updated board:", updatedBoard);
       res.status(200).json(updatedBoard);
-
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Internal Server Error" });
@@ -190,5 +220,30 @@ router.put("/update",
   }
 );
 
+router.delete("/delete/:id",
+  passport.authenticate("jwt", { session: false }),
+  async (req: Request, res: Response) => {
+    const user = req.user as User;
+    if (!user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+    const boardId = req.params.id;
+    if (!boardId) {
+      res.status(400).json({ message: "Bad Request" });
+      return;
+    }
+
+    try {
+      const board = await prisma.board.delete({
+        where: { id: boardId }
+      });
+      res.status(200).json(board);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
 
 export default router;

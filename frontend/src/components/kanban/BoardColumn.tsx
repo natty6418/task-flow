@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { Board, Task, Status } from '@/types/type';
 import TaskCard from './TaskCard';
-import { useDebounce } from 'use-debounce';
+import { useDebouncedCallback } from 'use-debounce';
 import API from '@/services/api';
+import { Trash2 } from 'lucide-react';
+import { updateBoard } from '@/services/boardService';
 
 interface BoardColumnProps {
   activeTask?: Task | null;
@@ -11,8 +13,10 @@ interface BoardColumnProps {
   tasks: Task[];
   availableTasks?: Task[];
   onAddTaskToBoard?: (boardId: string, taskId: string) => void;
+  onDeleteBoard?: (boardId: string) => void;
   setBoards?: React.Dispatch<React.SetStateAction<Board[]>>;
   projectId?: string;
+  isLoading?: boolean;
 }
 
 
@@ -22,16 +26,25 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
   tasks,
   availableTasks = [],
   onAddTaskToBoard,
+  onDeleteBoard,
   activeTask,
   setBoards,
   projectId,
+  isLoading = false,
 }) => {
   const [showTaskList, setShowTaskList] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { setNodeRef, isOver } = useDroppable({ id: initialBoard.id });
   const [boardStatus, setBoardStatus] = useState(initialBoard.status);
   const [board, setBoard] = useState<Board>(initialBoard);
-  const [debouncedBoard] = useDebounce(board, 1000);
-  const [isDirty, setIsDirty] = useState(false);
+  const pendingChangesRef = useRef<Partial<Board>>({});
+  const originalBoardRef = useRef<Board | null>(null);
+
+
+  // Update local board state when initialBoard prop changes
+  useEffect(() => {
+    setBoard(initialBoard);
+  }, [initialBoard]);
 
   
   const getBoardStatusClass = (status: string): string => {
@@ -57,54 +70,73 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
     }
   }, [tasks]);
 
-  // Update board when debounced values change
-  useEffect(() => {
-    if (!isDirty || !projectId || !setBoards) return;
-    
-    const updateBoard = async () => {
-      try {
-        const response = await API.put("/board/update", {
-          id: debouncedBoard.id,
-          name: debouncedBoard.name,
-          description: debouncedBoard.description || "",
-          status: debouncedBoard.status || Status.TODO,
-          tasks: debouncedBoard.tasks || [],
-          projectId,
-        });
-        if (response.status === 200) {
-          console.log("Board updated successfully:", response.data);
-          setIsDirty(false);
-        }
-      } catch (error) {
-        console.error("Error updating board:", error);
-      }
-    };
-    
-    updateBoard();
-  }, [debouncedBoard, isDirty, projectId, setBoards]);
+  const flushChanges = useDebouncedCallback(async () => {
+    const changesToFlush = pendingChangesRef.current;
+    pendingChangesRef.current = {};
 
-  const handleEditBoardName = (newName: string) => {
-    setBoard((prev) => ({ ...prev, name: newName }));
-    setIsDirty(true);
+    if (Object.keys(changesToFlush).length === 0 || !projectId || !setBoards) {
+      originalBoardRef.current = null;
+      return;
+    }
+
+    const payload = {
+      ...board,
+      ...changesToFlush,
+      status: boardStatus,
+    };
+
+    try {
+      console.log("Updating board:", payload);
+      const response = await updateBoard(payload);
+      setBoards((prev) =>
+        prev.map((b) => (b.id === response.id ? { ...response, tasks: b.tasks } : b))
+      );
+      originalBoardRef.current = null;
+    } catch (error) {
+      console.error("Error updating board:", error);
+      // Rollback on failure
+      if (originalBoardRef.current) {
+        setBoard(originalBoardRef.current);
+        setBoards(prev => prev.map(b => b.id === originalBoardRef.current!.id ? originalBoardRef.current! : b));
+        originalBoardRef.current = null;
+      }
+    }
+  }, 1500);
+
+
+  const handleEdit = (field: keyof Board, value: string) => {
+    const trimmedValue = value.trim();
+    if (trimmedValue === board[field]) return;
+
+    if (!originalBoardRef.current) {
+      originalBoardRef.current = board;
+    }
+
+    // Optimistic UI update
+    const updatedBoard = { ...board, [field]: trimmedValue };
+    setBoard(updatedBoard);
     if (setBoards) {
       setBoards((prev) =>
         prev.map((b) =>
-          b.id === board.id ? { ...b, name: newName } : b
+          b.id === board.id ? { ...b, [field]: trimmedValue } : b
         )
       );
     }
+
+    pendingChangesRef.current = {
+      ...pendingChangesRef.current,
+      [field]: trimmedValue,
+    };
+
+    flushChanges();
+  };
+
+  const handleEditBoardName = (newName: string) => {
+    handleEdit('name', newName);
   };
 
   const handleEditBoardDescription = (newDescription: string) => {
-    setBoard((prev) => ({ ...prev, description: newDescription }));
-    setIsDirty(true);
-    if (setBoards) {
-      setBoards((prev) =>
-        prev.map((b) =>
-          b.id === board.id ? { ...b, description: newDescription } : b
-        )
-      );
-    }
+    handleEdit('description', newDescription);
   };
 
 
@@ -114,23 +146,46 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
     setShowTaskList(false);
   };
 
+  const handleDeleteClick = () => {
+    if (tasks.length > 0) {
+      setShowDeleteConfirm(true);
+    } else {
+      onDeleteBoard?.(board.id);
+    }
+  };
+
+  const confirmDelete = () => {
+    onDeleteBoard?.(board.id);
+    setShowDeleteConfirm(false);
+  };
+
   return (
     <div
       ref={setNodeRef}
-      className={`bg-white/70 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 min-h-[500px] ${
+      className={`bg-white/70 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 min-h-[500px] relative ${
         isOver ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-50/70' : ''
-      }`}
+      } ${isLoading ? 'pointer-events-none' : ''}`}
     >
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center z-30">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm font-medium text-gray-600">Updating board...</p>
+          </div>
+        </div>
+      )}
+
       {/* Modern Header */}
       <div className="p-4 border-b border-gray-200/50">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3 flex-1">
             <div className={`w-3 h-3 rounded-full ${getBoardStatusClass(boardStatus)}`} />
             <h3 
-              contentEditable
+              contentEditable={!isLoading}
               suppressContentEditableWarning
               onBlur={(e) => handleEditBoardName(e.currentTarget.innerText)}
-              className="text-sm font-bold text-gray-800 tracking-wide outline-none focus:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
+              className={`text-sm font-bold text-gray-800 tracking-wide outline-none focus:bg-blue-50 px-2 py-1 rounded-lg transition-colors ${isLoading ? 'cursor-not-allowed opacity-50' : ''}`}
             >
               {board.name}
             </h3>
@@ -138,13 +193,24 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowTaskList(prev => !prev)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
+              disabled={isLoading}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               {showTaskList ? 'Cancel' : 'Add Task'}
             </button>
+            {onDeleteBoard && (
+              <button
+                onClick={handleDeleteClick}
+                disabled={isLoading}
+                className="flex items-center justify-center w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Delete Board"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
             <div className="flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-600 rounded-full text-xs font-bold">
               {tasks.length}
             </div>
@@ -152,17 +218,15 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
         </div>
         
         {/* Description */}
-        {(board.description !== undefined || isDirty) && (
-          <div
-            contentEditable
-            suppressContentEditableWarning
-            onBlur={(e) => handleEditBoardDescription(e.currentTarget.innerText)}
-            className="text-xs text-gray-600 bg-gray-50 rounded-lg p-2 outline-none focus:bg-blue-50 focus:ring-2 focus:ring-blue-200 transition-colors"
-            title="Add a description..."
-          >
-            {board.description || 'Add a description...'}
-          </div>
-        )}
+        <div
+          contentEditable={!isLoading}
+          suppressContentEditableWarning
+          onBlur={(e) => handleEditBoardDescription(e.currentTarget.innerText)}
+          className={`text-xs text-gray-600 bg-gray-50 rounded-lg p-2 outline-none focus:bg-blue-50 focus:ring-2 focus:ring-blue-200 transition-colors ${isLoading ? 'cursor-not-allowed opacity-50' : ''}`}
+          title="Add a description..."
+        >
+          {board.description || 'Add a description...'}
+        </div>
       </div>
 
       {/* Task Selector */}
@@ -183,8 +247,8 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
                 {availableTasks.map(task => (
                   <div
                     key={task.id}
-                    className="p-3 hover:bg-blue-50 cursor-pointer transition-colors group"
-                    onClick={() => handleAddTask(task.id)}
+                    className={`p-3 hover:bg-blue-50 cursor-pointer transition-colors group ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+                    onClick={() => !isLoading && handleAddTask(task.id)}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
@@ -226,6 +290,41 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-2xl flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 m-4 max-w-sm w-full shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Delete Board</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700 mb-6">
+              This board contains {tasks.length} task{tasks.length !== 1 ? 's' : ''}. 
+              Deleting the board will move all tasks back to the unassigned list.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

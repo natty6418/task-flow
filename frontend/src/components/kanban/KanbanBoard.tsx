@@ -16,7 +16,7 @@ import TaskCard from "./TaskCard";
 import { updateBoard } from "@/services/boardService";
 import { Plus } from "lucide-react";
 import { Status } from "@/types/type";
-import { createBoard } from "@/services/boardService";
+import { createBoard, deleteBoard } from "@/services/boardService";
 import { Project } from "@/types/type";
 
 interface KanbanBoardProps {
@@ -40,6 +40,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 }) => {
   const sensors = useSensors(useSensor(PointerSensor));
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
+  const [loadingBoards, setLoadingBoards] = React.useState<Set<string>>(new Set());
 
 
   const newBoard = {
@@ -75,7 +76,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     setActiveTask(task || null);
   };
 
-  const onDragEnd = (event: DragEndEvent) => {
+  const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveTask(null);
 
@@ -94,84 +95,152 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     const updatedBoard = boards.find((board) => board.id === newBoardId);
     const prevBoard = boards.find((board) => board.id === task?.boardId);
 
-    if (updatedBoard && task) {
-      updateBoard({
-        id: updatedBoard.id,
-        name: updatedBoard.name,
-        projectId: updatedBoard.projectId,
-        description: updatedBoard.description,
-        status: updatedBoard.status,
-        tasks: [
-          ...updatedBoard.tasks,
-          {
-            ...task,
-            boardId: newBoardId,
-          },
-        ],
-      }).catch((err) => {
-        console.error("Error updating board:", err);
-        // Optionally, you can revert the task state here if needed
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === taskId ? { ...t, boardId: task.boardId } : t
-          )
-        );
-      });
-    }
+    // Set loading state for affected boards
+    setLoadingBoards((prev) => {
+      const newSet = new Set(prev);
+      if (updatedBoard) newSet.add(updatedBoard.id);
+      if (prevBoard) newSet.add(prevBoard.id);
+      return newSet;
+    });
+
+    const updateTasks = [];
+
+    // Update the new board (add task)
+    
+    // Update the previous board (remove task)
     if (prevBoard && task) {
-      updateBoard({
-        id: prevBoard.id,
-        name: prevBoard.name,
-        projectId: prevBoard.projectId,
-        description: prevBoard.description,
-        status: prevBoard.status,
-        tasks: prevBoard.tasks.filter((t) => t.id !== taskId),
-      }).catch((err) => {
-        console.error("Error updating board:", err);
-        // Optionally, you can revert the task state here if needed
-        setTasks((prev) =>
-          prev.map((t) =>
-            t.id === taskId ? { ...t, boardId: prevBoard.id } : t
-          )
-        );
-      });
+      const updatePrevBoard = async () => {
+        try {
+          await updateBoard({
+            ...prevBoard,
+            tasks: prevBoard.tasks.filter((t) => t.id !== taskId),
+          });
+        } catch (err) {
+          console.error("Error updating previous board:", err);
+          // Revert the task state on error
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId ? { ...t, boardId: prevBoard.id } : t
+            )
+          );
+        } finally {
+          setLoadingBoards((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(prevBoard.id);
+            return newSet;
+          });
+        }
+      };
+      updateTasks.push(updatePrevBoard());
     }
+    
+    if (updatedBoard && task) {
+      const updateNewBoard = async () => {
+        try {
+          await updateBoard({
+            ...updatedBoard,
+            tasks: [...(updatedBoard.tasks || []), { ...task, boardId: newBoardId }],
+          });
+          console.log("Task moved:", task, "to board:", updatedBoard);
+        } catch (err) {
+          console.error("Error updating board:", err);
+          // Revert the task state on error
+          setTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId ? { ...t, boardId: task.boardId } : t
+            )
+          );
+        } finally {
+          setLoadingBoards((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(updatedBoard.id);
+            return newSet;
+          });
+        }
+      };
+      updateTasks.push(updateNewBoard());
+    }
+    // Execute all updates in parallel
+    await Promise.all(updateTasks);
   };
-  const handleAddTaskToBoard = (boardId: string, taskId: string) => {
+  const handleAddTaskToBoard = async (boardId: string, taskId: string) => {
     setTasks((prev) =>
       prev.map((task) => (task.id === taskId ? { ...task, boardId } : task))
     );
     const task = tasks.find((task) => task.id === taskId);
     const updatedBoard = boards.find((board) => board.id === boardId);
+    
     if (updatedBoard && task) {
-      updateBoard({
-        id: updatedBoard.id,
-        name: updatedBoard.name,
-        projectId: updatedBoard.projectId,
-        description: updatedBoard.description,
-        status: updatedBoard.status,
-        tasks: [...updatedBoard.tasks, task],
-      }).catch((err) => {
+      setLoadingBoards((prev) => new Set(prev).add(boardId));
+      
+      try {
+        await updateBoard({
+          ...updatedBoard,
+          tasks: [...updatedBoard.tasks, { ...task, boardId }],
+        });
+      } catch (err) {
         console.error("Error updating board:", err);
-        // Optionally, you can revert the task state here if needed
+        // Revert the task state on error
         setTasks((prev) =>
           prev.map((t) =>
             t.id === taskId ? { ...t, boardId: task.boardId } : t
           )
         );
-      });
+      } finally {
+        setLoadingBoards((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(boardId);
+          return newSet;
+        });
+      }
     }
   };
 
   const addBoard = async () => {
     setBoards((prev) => [...prev, newBoard]);
     try{
+      console.log("Creating new board:", newBoard);
       const board = await createBoard(newBoard);
       setBoards((prev) => prev.map((b) => (b.id === newBoard.id ? {...board, tasks: []} : b)));
     } catch (error) {
       console.error("Error creating board:", error);
       // Optionally, you can revert the board state here if needed
       setBoards((prev) => prev.filter((b) => b.id !== newBoard.id));
+    }
+  }
+
+  const handleDeleteBoard = async (boardId: string) => {
+    // First, move all tasks from this board back to unassigned
+    const boardTasks = tasksByBoard[boardId] || [];
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.boardId === boardId ? { ...task, boardId: undefined } : task
+      )
+    );
+
+    // Remove board from state optimistically
+    setBoards((prev) => prev.filter((b) => b.id !== boardId));
+
+    // Set loading state
+    setLoadingBoards((prev) => new Set(prev).add(boardId));
+
+    try {
+      await deleteBoard(boardId);
+    } catch (error) {
+      console.error("Error deleting board:", error);
+      // Revert changes on error
+      setBoards((prev) => [...prev, boards.find(b => b.id === boardId)!]);
+      setTasks((prev) =>
+        prev.map((task) =>
+          boardTasks.some(bt => bt.id === task.id) ? { ...task, boardId } : task
+        )
+      );
+    } finally {
+      setLoadingBoards((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(boardId);
+        return newSet;
+      });
     }
   }
 
@@ -196,9 +265,11 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   activeTask={activeTask}
                   setBoards={setBoards}
                   projectId={projectId}
+                  isLoading={loadingBoards.has(board.id)}
                   onAddTaskToBoard={(boardId, taskId) => {
                     handleAddTaskToBoard(boardId, taskId);
                   }}
+                  onDeleteBoard={handleDeleteBoard}
                 />
               </div>
             ))}
@@ -208,7 +279,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                 <button
                   onClick={addBoard}
                   title="Add Board"
-                  className="flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-700 transition-colors w-16 h-16 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="flex items-center justify-center rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors w-16 h-16 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   <Plus className="w-5 h-5" />
                 </button>

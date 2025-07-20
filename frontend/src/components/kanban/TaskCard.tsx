@@ -79,11 +79,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isActive }) => {
           </span>
         </div>
         
-        {task.description && (
-          <p className="text-xs text-gray-600 line-clamp-3 mb-3 leading-relaxed">
-            {task.description}
-          </p>
-        )}
+        
         
         {/* Priority Badge */}
         <div className="flex items-center justify-between mb-3">

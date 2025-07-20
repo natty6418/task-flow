@@ -41,17 +41,18 @@ export const createBoard = async (data: {
 };
 
 // 🔹 Update a board
-export const updateBoard = async (data: {
-  id: string;
-  name: string;
-  projectId: string;
-  description?: string;
-  status?: 'TODO' | 'IN_PROGRESS' | 'DONE';
-  tasks: Task[];
-}): Promise<Board> => {
+export const updateBoard = async (data: Board): Promise<Board> => {
   try {
     const res = await API.put('/board/update', data);
     return res.data;
+  } catch (err) {
+    throw new Error(extractError(err));
+  }
+};
+
+export const deleteBoard = async (boardId: string): Promise<void> => {
+  try {
+    await API.delete(`/board/delete/${boardId}`);
   } catch (err) {
     throw new Error(extractError(err));
   }
