@@ -47,7 +47,7 @@ export default function ProjectRecentTasksPanel({
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 text-sm truncate">{task.title}</p>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{task.description}</p>
+                    
                     {task.dueDate && (
                       <p className="text-xs text-gray-400 mt-1">
                         Due: {new Date(task.dueDate).toLocaleDateString()}

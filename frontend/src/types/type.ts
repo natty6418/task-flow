@@ -62,6 +62,7 @@ export type User = {
     updatedAt: Date;
     boardId?: string;
     board?: Board;
+    
   };
   
   // Enums

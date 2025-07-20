@@ -166,7 +166,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const addBoard = async () => {
     setBoards((prev) => [...prev, newBoard]);
     try{
-      await createBoard(newBoard);
+      const board = await createBoard(newBoard);
+      setBoards((prev) => prev.map((b) => (b.id === newBoard.id ? {...board, tasks: []} : b)));
     } catch (error) {
       console.error("Error creating board:", error);
       // Optionally, you can revert the board state here if needed
@@ -177,37 +178,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   return (
     <div className=" bg-gradient-to-br from-slate-50 to-gray-100 p-6 ">
       {/* Modern Header */}
-      <div className="mb-6">
-        
-        {/* Progress Indicator */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              Overall Progress
-            </span>
-            <span className="text-sm text-gray-600">
-              {tasks.filter((t) => t.status === "DONE").length} / {tasks.length}{" "}
-              completed
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${
-                  tasks.length > 0
-                    ? (tasks.filter((t) => t.status === "DONE").length /
-                        tasks.length) *
-                      100
-                    : 0
-                }%`,
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Kanban Columns */}
+            {/* Kanban Columns */}
       <div className="overflow-x-auto pb-1 scrollbar-hide">
         <DndContext
           collisionDetection={closestCorners}
@@ -236,6 +207,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
               <div className="flex items-center justify-center w-20 flex-shrink-0">
                 <button
                   onClick={addBoard}
+                  title="Add Board"
                   className="flex items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-700 transition-colors w-16 h-16 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   <Plus className="w-5 h-5" />

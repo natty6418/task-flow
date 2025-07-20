@@ -61,14 +61,13 @@ export default function ProjectHeader({
           {name}
         </h1>
 
-        <p
-          contentEditable
-          suppressContentEditableWarning
-          onBlur={(e) => setDescription(e.target.innerText)}
-          className="text-gray-600 text-lg leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg p-2 -m-2"
-        >
-          {description || "Add a project description..."}
-        </p>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Add a project description..."
+          className="w-full text-gray-600 text-lg leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg p-2 -m-2 bg-transparent border-none resize-none overflow-hidden min-h-[2.5rem]"
+          rows={2}
+        />
       </div>
 
 

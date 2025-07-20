@@ -16,6 +16,9 @@ interface ProjectMainContentProps {
   setBoards: React.Dispatch<React.SetStateAction<Board[]>>;
   setShowAddBoardModal: (show: boolean) => void;
   handleAddTask: () => void;
+  handleUpdateTask: (taskId: string, field: keyof Task, value: Task[keyof Task]) => void;
+  handleRemoveTask: (taskId: string) => void;
+  updatingTasks: Set<string>;
 }
 
 export default function ProjectMainContent({
@@ -28,8 +31,11 @@ export default function ProjectMainContent({
   setBoards,
   setShowAddBoardModal,
   handleAddTask,
+  handleUpdateTask,
+  handleRemoveTask,
+  updatingTasks,
 }: ProjectMainContentProps) {
-  const [activeTab, setActiveTab] = useState<"boards" | "tasks">("boards");
+  const [activeTab, setActiveTab] = useState<"boards" | "tasks">("tasks");
 
   return (
     <div className="space-y-6">
@@ -87,6 +93,9 @@ export default function ProjectMainContent({
             tasks={tasks}
             setTasks={setTasks}
             handleAddTask={handleAddTask}
+            handleUpdateTask={handleUpdateTask}
+            handleRemoveTask={handleRemoveTask}
+            updatingTasks={updatingTasks}
           />
         )}
       </div>

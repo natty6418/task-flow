@@ -8,7 +8,7 @@ import API from "@/services/api";
 import TaskItem from "../TaskItem";
 import SectionCard from "./SectionCard";
 import { useDebouncedCallback } from "use-debounce";
-
+import { createTask, deleteTask, updateTask } from "@/services/taskSevice";
 interface UnifiedTaskPanelProps {
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
@@ -41,21 +41,17 @@ const UnifiedTaskPanel: React.FC<UnifiedTaskPanelProps> = ({
         const originalTask = originalTasksRef.current[taskId];
         // The backend requires the title, so we ensure it's part of the payload.
         // We get it from the original task snapshot to avoid issues with stale state.
-        const payload = {
-          id: taskId,
-          title: originalTask?.title,
+        const payload = { 
+          ...originalTask,
           ...changes,
         };
 
         try {
-          const response = await API.put(`/task/update`, payload);
-          if (response.status !== 200) {
-            throw new Error(`Failed to update task ${taskId}`);
-          }
+          const updatedTask = await updateTask(payload)
           // Success: Update the task with server's response
           setTasks((prevTasks) =>
             prevTasks.map((task) =>
-              task.id === taskId ? response.data : task
+              task.id === taskId ? updatedTask : task
             )
           );
           delete originalTasksRef.current[taskId];
@@ -123,10 +119,7 @@ const UnifiedTaskPanel: React.FC<UnifiedTaskPanelProps> = ({
   const handleRemoveTask = useCallback(
     async (taskId: string) => {
       try {
-        const res = await API.delete(`/task/delete/${taskId}`);
-        if (res.status !== 200) {
-          throw new Error("Failed to delete task");
-        }
+        await deleteTask(taskId)
         setTasks((prev) => prev.filter((t) => t.id !== taskId));
       } catch (error) {
         console.error("Failed to delete task:", error);
@@ -151,17 +144,9 @@ const UnifiedTaskPanel: React.FC<UnifiedTaskPanelProps> = ({
 
     const addTask = async () => {
       try {
-        const response = await API.post(
-          `/task/create`,
-          { ...newTask },
-          { withCredentials: true }
-        );
+       
 
-        if (response.status !== 200) {
-          throw new Error("Failed to create task");
-        }
-
-        const savedTask = response.data;
+        const savedTask = await createTask(newTask);
         setTasks((prev) =>
           prev.map((task) => (task.id === newTask.id ? savedTask : task))
         );

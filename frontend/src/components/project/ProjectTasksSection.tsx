@@ -5,16 +5,23 @@ import { Task } from "@/types/type";
 import TaskItem from "@/components/TaskItem";
 import { useState } from "react";
 
+
 interface ProjectTasksSectionProps {
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   handleAddTask: () => void;
+  handleUpdateTask: (taskId: string, field: keyof Task, value: Task[keyof Task]) => void;
+  handleRemoveTask: (taskId: string) => void;
+  updatingTasks: Set<string>;
 }
 
 export default function ProjectTasksSection({
   tasks,
   setTasks,
   handleAddTask,
+  handleUpdateTask,
+  handleRemoveTask,
+  updatingTasks,
 }: ProjectTasksSectionProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -38,7 +45,7 @@ export default function ProjectTasksSection({
     IN_PROGRESS: tasks.filter(t => t.status === 'IN_PROGRESS').length,
     DONE: tasks.filter(t => t.status === 'DONE').length,
   };
-
+ 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
@@ -74,6 +81,7 @@ export default function ProjectTasksSection({
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-gray-400" />
             <select
+              aria-label="Filter tasks by status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -92,8 +100,8 @@ export default function ProjectTasksSection({
         {sortedTasks.length > 0 ? (
           <div className="space-y-3">
             {sortedTasks.map((task) => (
-              <div key={task.id} className="border border-gray-200 rounded-lg p-3 hover:border-blue-200 transition-colors">
-                <TaskItem task={task} setTasks={setTasks} />
+              <div key={task.id} className="">
+                <TaskItem task={task} onUpdateTask={handleUpdateTask} onRemoveTask={handleRemoveTask} isUpdating={updatingTasks.has(task.id)} />
               </div>
             ))}
           </div>

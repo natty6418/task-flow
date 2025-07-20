@@ -71,11 +71,32 @@ router.post("/create",
             res.status(401).json({ message: "Unauthorized" })
             return
         }
-        const { title, description, dueDate, status, boardId } = req.body
+        const { title, description, dueDate, status, boardId, priority, projectId} = req.body
         console.log(req.body)
         if (!title) {
             res.status(400).json({ message: "Bad Request" })
             return
+        }
+
+        if (projectId) {
+            const project = await prisma.project.findFirst({
+            where: {
+                id: projectId,
+                projectMemberships: {
+                some: {
+                    userId: user.id,
+                }
+                }
+            },
+            include: {
+                projectMemberships: true,
+            }
+            });
+
+            if (!project) {
+            res.status(404).json({ message: "Project not found or access denied" });
+            return;
+            }
         }
 
         if (boardId){
@@ -99,6 +120,8 @@ router.post("/create",
                     dueDate: new Date(dueDate),
                     status: status? status : "TODO",
                     boardId: boardId,
+                    priority: priority ? priority : "MEDIUM",
+                    projectId: projectId
                 }
             })
             if (boardId){

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import NewTaskModal from "./NewTaskModal";
 import { Project } from "@/types/type";
 import { useDebounce } from "use-debounce";
@@ -20,6 +20,8 @@ import ProjectMainContent from "./project/ProjectMainContent";
 import ProjectStatsPanel from "./project/ProjectStatsPanel";
 import ProjectMembersPanel from "./project/ProjectMembersPanel";
 import ProjectRecentTasksPanel from "./project/ProjectRecentTasksPanel";
+import { createTask , deleteTask, updateTask} from "@/services/taskSevice";
+import { useDebouncedCallback } from "use-debounce";
 
 export default function ProjectDetails({ project }: { project: Project }) {
   const [name, setName] = useState(project.name);
@@ -38,6 +40,12 @@ export default function ProjectDetails({ project }: { project: Project }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { setProjects, user } = useAuth();
   const router = useRouter();
+
+  const [updatingTasks, setUpdatingTasks] = useState<Set<string>>(new Set());
+  const pendingChangesRef = useRef<Record<string, Partial<Task>>>({});
+  const originalTasksRef = useRef<Record<string, Task>>({});
+
+
 
   const isAdmin = members.some((m) => m.user.id === user?.id && m.role === Role.ADMIN);
 
@@ -114,7 +122,7 @@ export default function ProjectDetails({ project }: { project: Project }) {
     }
   };
 
-  const handleAddTask = () => {
+   const handleAddTask = () => {
     const newTask: Task = {
       id: `temp-${uuidv4()}`,
       title: "New Task",
@@ -124,23 +132,17 @@ export default function ProjectDetails({ project }: { project: Project }) {
       dueDate: new Date(),
       createdAt: new Date(),
       updatedAt: new Date(),
+      projectId: project.id,
     };
-  
+
     setTasks((prev) => [newTask, ...prev]);
-  
+
     const addTask = async () => {
       try {
-        const response = await API.post(
-          `/task/create`,
-          { ...newTask },
-          { withCredentials: true }
-        );
-  
-        if (response.status !== 200) {
-          throw new Error("Failed to create task");
-        }
-  
-        const savedTask = response.data;
+       
+
+        const savedTask = await createTask(newTask);
+        console.log("Task created:", savedTask);
         setTasks((prev) =>
           prev.map((task) => (task.id === newTask.id ? savedTask : task))
         );
@@ -149,9 +151,107 @@ export default function ProjectDetails({ project }: { project: Project }) {
         setTasks((prev) => prev.filter((task) => task.id !== newTask.id));
       }
     };
-  
+
     addTask();
   };
+
+  const handleRemoveTask = 
+      async (taskId: string) => {
+        try {
+          await deleteTask(taskId)
+          setTasks((prev) => prev.filter((t) => t.id !== taskId));
+        } catch (error) {
+          console.error("Failed to delete task:", error);
+        }
+      }
+      
+  const flushChanges = useDebouncedCallback(async () => {
+    const changesToFlush = { ...pendingChangesRef.current };
+    pendingChangesRef.current = {};
+
+    if (Object.keys(changesToFlush).length === 0) return;
+
+    const updatePromises = Object.entries(changesToFlush).map(
+      async ([taskId, changes]) => {
+        const originalTask = originalTasksRef.current[taskId];
+        // The backend requires the title, so we ensure it's part of the payload.
+        // We get it from the original task snapshot to avoid issues with stale state.
+        const payload = { 
+          ...originalTask,
+          ...changes,
+        };
+
+        try {
+          const updatedTask = await updateTask(payload)
+          // Success: Update the task with server's response
+          setTasks((prevTasks) =>
+            prevTasks.map((task) =>
+              task.id === taskId ? updatedTask : task
+            )
+          );
+          delete originalTasksRef.current[taskId];
+        } catch (error) {
+          console.error(error);
+          // Failure: Rollback to the original state
+          if (originalTask) {
+            setTasks((prevTasks) =>
+              prevTasks.map((task) =>
+                task.id === taskId ? originalTask : task
+              )
+            );
+            delete originalTasksRef.current[taskId];
+          }
+        } finally {
+          setUpdatingTasks((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(taskId);
+            return newSet;
+          });
+        }
+      }
+    );
+
+    await Promise.all(updatePromises);
+  }, 1500);
+
+  const handleUpdateTask = (
+    taskId: string,
+    field: keyof Task,
+    value: Task[keyof Task]
+  ) => {
+    const currentTask = tasks.find((t) => t.id === taskId);
+    if (!currentTask) return;
+
+    // Check if the value has actually changed
+    if (currentTask[field] === value) {
+      return; // No change, don't do anything
+    }
+
+    // Store the original task state if this is the first change in a batch
+    if (!originalTasksRef.current[taskId]) {
+      originalTasksRef.current[taskId] = currentTask;
+    }
+
+    // Optimistic UI update
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId
+          ? { ...task, [field]: value, updatedAt: new Date() }
+          : task
+      )
+    );
+
+    setUpdatingTasks((prev) => new Set(prev).add(taskId));
+
+    pendingChangesRef.current[taskId] = {
+      ...pendingChangesRef.current[taskId],
+      [field]: value,
+    };
+
+    flushChanges();
+  };
+
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -189,6 +289,9 @@ export default function ProjectDetails({ project }: { project: Project }) {
               setBoards={setBoards}
               setShowAddBoardModal={setShowAddBoardModal}
               handleAddTask={handleAddTask}
+              handleUpdateTask={handleUpdateTask}
+              handleRemoveTask={handleRemoveTask}
+              updatingTasks={updatingTasks}
             />
           </div>
 

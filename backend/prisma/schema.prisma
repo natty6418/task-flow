@@ -84,7 +84,8 @@ model Task {
   assignedTo    User?    @relation("UserTasks", fields: [assignedToId], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  boardId      String?
+  boardId       String?
+  
   board        Board?   @relation(fields: [boardId], references: [id])
 }
 

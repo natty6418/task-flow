@@ -34,13 +34,7 @@ export const fetchProjectTasks = async (projectId: string): Promise<Task[]> => {
 };
 
 // 🔹 Create a new task
-export const createTask = async (taskData: {
-  title: string;
-  description?: string;
-  dueDate?: string;
-  status?: Status;
-  boardId?: string;
-}): Promise<Task> => {
+export const createTask = async (taskData: Task): Promise<Task> => {
   try {
     const response = await API.post("/task/create", taskData);
     return response.data;
@@ -60,14 +54,7 @@ export const assignTask = async (taskId: string, userId: string): Promise<Task> 
 };
 
 // 🔹 Update an existing task
-export const updateTask = async (taskData: {
-  id: string;
-  title: string;
-  description?: string;
-  dueDate?: string;
-  status?: Status;
-  priority?: Priority;
-}): Promise<Task> => {
+export const updateTask = async (taskData: Task): Promise<Task> => {
   try {
     const response = await API.put("/task/update", taskData);
     return response.data;
