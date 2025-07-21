@@ -2,7 +2,7 @@
 
 import { CheckSquare, Plus, Filter, Search } from "lucide-react";
 import { Task } from "@/types/type";
-import TaskItem from "@/components/TaskItem";
+import TaskItem from "../tasks/TaskItem";
 import { useState } from "react";
 
 

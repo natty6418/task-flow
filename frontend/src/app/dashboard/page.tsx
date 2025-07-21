@@ -5,12 +5,12 @@ import { useState } from "react";
 import UnifiedTaskPanel from '@/components/dashboard/UnifiedTaskPanel';
 import Projects from '@/components/dashboard/Projects';
 import TabbedSidebar from '@/components/dashboard/TabbedSidebar';
-import SideBar from "@/components/SideBar";
-import Header from "@/components/Header";
-import Loader from "@/components/Loader";
-import CreateProjectModal from "@/components/CreateProjectModal";
+import SideBar from "@/components/layout/SideBar";
+import Header from "@/components/layout/Header";
+import Loader from "@/components/common/Loader";
+import CreateProjectModal from "@/components/modals/CreateProjectModal";
 import { Status } from '@/types/type';
-import FloatingActionButton from "@/components/FloatingActionButton";
+import FloatingActionButton from "@/components/common/FloatingActionButton";
 
 export default function Dashboard() {
   const { user, loading, projects, loadingProjects, loadingTasks, tasks, setTasks } = useAuth();

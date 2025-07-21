@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 // import { useState, useEffect } from 'react';
 // import API from "@/services/api";
-import DashboardCard from "./DashboardCard";
+import DashboardCard from "../common/DashboardCard";
 // import { Project } from "@/types/type";
 import { Link as LucidLink } from "lucide-react";
 import Link from "next/link";

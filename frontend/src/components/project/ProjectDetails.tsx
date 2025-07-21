@@ -1,25 +1,25 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import NewTaskModal from "./NewTaskModal";
+import NewTaskModal from "../modals/NewTaskModal";
 import { Project } from "@/types/type";
 import { useDebounce } from "use-debounce";
 import API from "@/services/api";
 import toast from "react-hot-toast";
-import AddMemberModal from "@/components/AddMemberModal";
-import AddBoardModal from "./AddBoardModal";
+import AddMemberModal from "../modals/AddMemberModal";
+import AddBoardModal from "../modals/AddBoardModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import {updateProject as updateProjectService} from "@/services/projectService";
 import { Role } from "@/types/type";
-import FloatingActionButton from "./FloatingActionButton";
+import FloatingActionButton from "../common/FloatingActionButton";
 import { Task, Status, Priority } from "@/types/type";
 import { v4 as uuidv4 } from "uuid";
-import ProjectHeader from "./project/ProjectHeader";
-import ProjectMainContent from "./project/ProjectMainContent";
-import ProjectStatsPanel from "./project/ProjectStatsPanel";
-import ProjectMembersPanel from "./project/ProjectMembersPanel";
-import ProjectRecentTasksPanel from "./project/ProjectRecentTasksPanel";
+import ProjectHeader from "./ProjectHeader";
+import ProjectMainContent from "./ProjectMainContent";
+import ProjectStatsPanel from "./ProjectStatsPanel";
+import ProjectMembersPanel from "./ProjectMembersPanel";
+import ProjectRecentTasksPanel from "./ProjectRecentTasksPanel";
 import { createTask , deleteTask, updateTask} from "@/services/taskSevice";
 import { useDebouncedCallback } from "use-debounce";
 

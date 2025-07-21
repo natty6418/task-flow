@@ -4,7 +4,7 @@ import { LayoutDashboard, Settings, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import Loader from "./Loader";
+import Loader from "../common/Loader";
 
 export default function SideBar() {
   const pathname = usePathname();

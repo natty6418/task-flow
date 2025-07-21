@@ -3,7 +3,7 @@
 import { useState } from "react";
 import API from "@/services/api";
 import { useRouter } from "next/navigation";
-import Loader from "./Loader";
+import Loader from "../common/Loader";
 import { useAuth } from "@/contexts/AuthContext";
 import { X } from "lucide-react";
 

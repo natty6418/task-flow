@@ -64,6 +64,32 @@ export type User = {
     board?: Board;
     
   };
+
+  export interface Notification {
+  id: string;
+  userId: string;
+  projectId?: string | null;
+  taskId?: string | null;
+  boardId?: string | null;
+  type: NotificationType;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: Date; 
+}
+
+export enum NotificationType {
+  TASK_ASSIGNED = 'TASK_ASSIGNED',
+  TASK_UNASSIGNED = 'TASK_UNASSIGNED',
+  TASK_UPDATED = 'TASK_UPDATED',
+  TASK_COMPLETED = 'TASK_COMPLETED',
+  BOARD_CREATED = 'BOARD_CREATED',
+  BOARD_UPDATED = 'BOARD_UPDATED',
+  PROJECT_MEMBER_ADDED = 'PROJECT_MEMBER_ADDED',
+  PROJECT_MEMBER_REMOVED = 'PROJECT_MEMBER_REMOVED',
+}
+
+
   
   // Enums
   export enum Role {

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Task, Board, Status } from "@/types/type";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
-import TaskItem from "./TaskItem";
-import TaskPicker from "./TaskPicker";
+import TaskItem from "../tasks/TaskItem";
+import TaskPicker from "../tasks/TaskPicker";
 import API from "@/services/api";
 
 import { useDebounce } from 'use-debounce';

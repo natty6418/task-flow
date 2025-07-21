@@ -2,7 +2,7 @@
 
 import { LayoutIcon, ListIcon } from "lucide-react";
 import { Board, Task, Project } from "@/types/type";
-import BoardsList from "@/components/BoardsList";
+import BoardsList from "../boards/BoardsList";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
 
 interface ProjectBoardsSectionProps {
