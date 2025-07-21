@@ -295,6 +295,56 @@ router.post("/removeMember/:id", passport.authenticate("jwt", { session: false }
         }
     });
 
+router.get("/getMembers/:id", passport.authenticate("jwt", { session: false }),
+    async (req: Request, res: Response) => {
+        const user = req.user as User;
+        if (!user) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+        const { id } = req.params;
+        if (!id) {
+            res.status(400).json({ message: "Bad Request" });
+            return;
+        }
+        // Check if the project exists
+        const project = await prisma.project.findUnique({
+            where: { id },
+            include: {
+                projectMemberships: {
+                    select: {
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            }
+                        },
+                        role: true,
+                    }
+                }
+            }
+        });
+        if (!project) {
+            res.status(404).json({ message: "Project not found" });
+            return;
+        }
+        // Check if the user is a member of the project
+        const membership = await prisma.projectMember.findUnique({
+            where: {
+                userId_projectId: { userId: user.id, projectId: id }
+            }
+        });
+        
+        if (!membership) {
+            res.status(403).json({ message: "Forbidden" });
+            return;
+        }
+
+        res.json(project.projectMemberships);
+    }
+);
+
 router.get("/:id", passport.authenticate("jwt", { session: false }),
     async (req: Request, res: Response) => {
         const user = req.user as User;

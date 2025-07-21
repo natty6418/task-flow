@@ -97,6 +97,17 @@ router.post("/create",
             res.status(404).json({ message: "Project not found or access denied" });
             return;
             }
+            const membership = await prisma.projectMember.findUnique({
+                where: {
+                    userId_projectId: { userId: user.id, projectId }
+                }
+            });
+            
+            if (membership && (membership.role !== "ADMIN" || project.ownerId !== user.id)) {
+                res.status(403).json({ message: "Forbidden" });
+                return;
+            }
+
         }
 
         if (boardId){
@@ -158,6 +169,28 @@ router.post("/assign",
             res.status(400).json({ message: "Bad Request" })
             return
         }
+
+        // 1. First verify the task exists and user has permission
+        const task = await prisma.task.findUnique({
+            where: { id: taskId },
+            include: { project: { include: { projectMemberships: true } } }
+        })
+
+        if (!task) {
+            res.status(404).json({ message: "Task not found" })
+            return
+        }
+
+        // 2. Check if current user can assign tasks in this project
+        if (task.project) {
+            const membership = task.project.projectMemberships.find(m => m.userId === user.id)
+            if (!membership || (membership.role !== "ADMIN" && task.project.ownerId !== user.id)) {
+                res.status(403).json({ message: "Forbidden: Cannot assign tasks in this project" })
+                return
+            }
+        }
+
+        // 3. Verify the user to be assigned exists and is a project member
         const userToBeAssigned = await prisma.user.findUnique({
             where: { id: userId }
         })
@@ -166,12 +199,26 @@ router.post("/assign",
             return
         }
 
+        // 4. If task belongs to a project, ensure the assignee is a project member
+        if (task.project) {
+            const assigneeMembership = task.project.projectMemberships.find(m => m.userId === userId)
+            if (!assigneeMembership) {
+                res.status(400).json({ message: "User is not a member of this project" })
+                return
+            }
+        }
+
         try {
-            const task = await prisma.task.update({
+            const updatedTask = await prisma.task.update({
                 where: { id: taskId },
-                data: { assignedToId: userId }
+                data: { assignedToId: userId },
+                include: {
+                    assignedTo: {
+                        select: { id: true, name: true, email: true }
+                    }
+                }
             })
-            res.status(200).json(task)
+            res.status(200).json(updatedTask)
         } catch (error) {
             console.error(error)
             res.status(500).json({ error: "Internal Server Error" })
