@@ -2,8 +2,24 @@ import express from "express"
 import { Request, Response } from "express"
 import prisma from "../models/prismaClient"
 import passport from "passport"
-import { Task, User } from "@prisma/client"
+import { Task, User }         // 2. Identify tasks to be removed from this board
+        const removedTaskIds = currentTaskIds.filter((taskId: string) => !newTaskIds.includes(taskId));
+        const addedTaskIds = newTaskIds.filter((taskId: string) => !currentTaskIds.includes(taskId));
+
+        // 3. Update tasks that are being removed from this board to have boardId = null
+        if (removedTaskIds.length > 0) {
+          await tx.task.updateMany({
+            where: {
+              id: { in: removedTaskIds },
+              boardId: id, // Make sure we only un-assign from the current board
+            },
+            data: {
+              boardId: null,
+            },
+          });
+        }ient"
 import { ProjectMember } from "@prisma/client"
+import notificationService from "../services/notificationService"
 
 const router = express.Router()
 
@@ -89,6 +105,9 @@ router.post("/create",
         }
       });
 
+      // Send notification to project members
+      await notificationService.notifyBoardCreated(board.id, user.id);
+
       res.status(201).json(board);
     } catch (error) {
       console.error(error);
@@ -168,6 +187,7 @@ router.put("/update",
 
         // 2. Identify tasks to be removed from this board
         const removedTaskIds = currentTaskIds.filter(taskId => !newTaskIds.includes(taskId));
+        const addedTaskIds = newTaskIds.filter(taskId => !currentTaskIds.includes(taskId));
 
         // 3. Update tasks that are being removed from this board to have boardId = null
         if (removedTaskIds.length > 0) {
@@ -210,6 +230,8 @@ router.put("/update",
         });
       });
 
+      // Send notification about board update
+      await notificationService.notifyBoardUpdated(id, user.id, name, description);
       
       res.status(200).json(updatedBoard);
     } catch (error) {
@@ -235,9 +257,26 @@ router.delete("/delete/:id",
     }
 
     try {
+      // Get board info before deletion for notification
+      const boardToDelete = await prisma.board.findUnique({
+        where: { id: boardId },
+        select: { name: true, projectId: true }
+      });
+
       const board = await prisma.board.delete({
         where: { id: boardId }
       });
+
+      // Send notification about board deletion
+      if (boardToDelete) {
+        await notificationService.notifyBoardDeleted(
+          boardId, 
+          boardToDelete.name, 
+          boardToDelete.projectId, 
+          user.id
+        );
+      }
+
       res.status(200).json(board);
     } catch (error) {
       console.error(error);

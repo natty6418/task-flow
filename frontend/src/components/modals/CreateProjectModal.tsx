@@ -4,7 +4,7 @@ import { useState } from "react";
 import API from "@/services/api";
 import { useRouter } from "next/navigation";
 import Loader from "../common/Loader";
-import { useAuth } from "@/contexts/AuthContext";
+import { useApp } from "@/contexts/AppContext";
 import { X } from "lucide-react";
 
 interface CreateProjectModalProps {
@@ -18,7 +18,7 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const {setProjects} = useAuth();
+  const { setProjects } = useApp();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

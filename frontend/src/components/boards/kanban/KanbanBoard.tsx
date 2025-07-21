@@ -9,12 +9,13 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
+  useDroppable,
 } from "@dnd-kit/core";
 import { Board, Task, TasksByBoard } from "@/types/type";
 import BoardColumn from "./BoardColumn";
 import TaskCard from "./TaskCard";
 import { updateBoard } from "@/services/boardService";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Status } from "@/types/type";
 import { createBoard, deleteBoard } from "@/services/boardService";
 import { Project } from "@/types/type";
@@ -29,6 +30,24 @@ interface KanbanBoardProps {
   project: Project;
 }
 
+const DeleteZone = () => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'delete-zone',
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center gap-3 px-6 py-4 rounded-full transition-all duration-300 ${
+        isOver ? 'bg-red-500 text-white shadow-2xl scale-110' : 'bg-white/80 backdrop-blur-sm text-gray-600 shadow-lg'
+      }`}
+    >
+      <Trash2 className={`w-6 h-6 transition-transform duration-300 ${isOver ? 'rotate-12' : ''}`} />
+      <span className="font-semibold text-lg">{isOver ? 'Release to delete' : 'Drag here to delete'}</span>
+    </div>
+  );
+};
+
 const KanbanBoard: React.FC<KanbanBoardProps> = ({
   boards = [],
   tasks = [],
@@ -41,12 +60,28 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const sensors = useSensors(useSensor(PointerSensor));
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
   const [loadingBoards, setLoadingBoards] = React.useState<Set<string>>(new Set());
-
+  const getUniqueboardName = () => {
+      const baseName = "Untitled Board";
+      const existingNames = boards.map(board => board.name.toLowerCase());
+      
+      // Check if base name is available
+      if (!existingNames.includes(baseName.toLowerCase())) {
+        return baseName;
+      }
+      
+      // Find the highest number used
+      let counter = 1;
+      while (existingNames.includes(`${baseName.toLowerCase()} ${counter}`)) {
+        counter++;
+      }
+      
+      return `${baseName} ${counter}`;
+    };
 
   const newBoard = {
     id: `new-board-${Date.now()}`,
     projectId,
-    name: "New Board",
+    name: getUniqueboardName(),
     description: "",
     status: Status.TODO,
     tasks: [],
@@ -73,14 +108,26 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const onDragStart = (event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id);
-    setActiveTask(task || null);
+    if (task) {
+      setActiveTask(task);
+      event.active.data.current = {
+        boardId: task.boardId,
+      };
+    }
   };
 
   const onDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveTask(null);
 
-    if (!over || active.id === over.id) return;
+    if (!over) return;
+
+    if (over.id === 'delete-zone') {
+      handleRemoveTaskFromBoard(active.data.current?.boardId, active.id as string);
+      return;
+    }
+    
+    if (active.id === over.id) return;
 
     // If task moved to a different board
     const taskId = active.id as string;
@@ -167,6 +214,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     setTasks((prev) =>
       prev.map((task) => (task.id === taskId ? { ...task, boardId } : task))
     );
+    setBoards((prev) =>
+      prev.map((board) =>
+        board.id === boardId
+          ? { ...board, tasks: [...(board.tasks || []), ...(tasks.filter((t) => t.id === taskId))] }
+          : board
+      )
+    );
     const task = tasks.find((task) => task.id === taskId);
     const updatedBoard = boards.find((board) => board.id === boardId);
     
@@ -184,6 +238,47 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         setTasks((prev) =>
           prev.map((t) =>
             t.id === taskId ? { ...t, boardId: task.boardId } : t
+          )
+        );
+        setBoards((prev) =>
+          prev.map((b) =>
+            b.id === boardId ? { ...b, tasks: b.tasks.filter((t) => t.id !== taskId) } : b
+          )
+        );
+      } finally {
+        setLoadingBoards((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(boardId);
+          return newSet;
+        });
+      }
+    }
+  };
+
+  const handleRemoveTaskFromBoard = async (boardId: string, taskId: string) => {
+    // Optimistically remove task from board (only update tasks state)
+    setTasks((prev) =>
+      prev.map((task) => (task.id === taskId ? { ...task, boardId: undefined } : task))
+    );
+    
+    const task = tasks.find((task) => task.id === taskId);
+    const board = boards.find((board) => board.id === boardId);
+    
+    if (board && task) {
+      setLoadingBoards((prev) => new Set(prev).add(boardId));
+      
+      try {
+        await updateBoard({
+          ...board,
+          tasks: board.tasks.filter((t) => t.id !== taskId),
+        });
+        console.log("Task removed:", task, "from board:", board);
+      } catch (err) {
+        console.error("Error removing task from board:", err);
+        // Revert the task state on error
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId ? { ...t, boardId } : t
           )
         );
       } finally {
@@ -247,7 +342,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   return (
     <div className=" bg-gradient-to-br from-slate-50 to-gray-100 p-6 ">
       {/* Modern Header */}
-            {/* Kanban Columns */}
+      {/* Kanban Columns */}
       <div className="overflow-x-auto pb-1 scrollbar-hide">
         <DndContext
           collisionDetection={closestCorners}
@@ -268,6 +363,9 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   isLoading={loadingBoards.has(board.id)}
                   onAddTaskToBoard={(boardId, taskId) => {
                     handleAddTaskToBoard(boardId, taskId);
+                  }}
+                  onRemoveTaskFromBoard={(boardId, taskId) => {
+                    handleRemoveTaskFromBoard(boardId, taskId);
                   }}
                   onDeleteBoard={handleDeleteBoard}
                 />
@@ -319,6 +417,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
               </div>
             ) : null}
           </DragOverlay>
+          {activeTask && <DeleteZone />}
         </DndContext>
       </div>
     </div>

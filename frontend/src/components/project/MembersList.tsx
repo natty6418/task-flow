@@ -44,6 +44,7 @@ export default function MembersList({
           <h2 className="text-xl font-semibold text-gray-900">Members</h2>
         </div>
         <button
+          aria-label="Add Member"
           onClick={() => setShowAddMemberModal(true)}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
         >

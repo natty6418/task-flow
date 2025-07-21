@@ -45,7 +45,7 @@ const formatDate = (date?: Date): string | null => {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, isActive }) => {
+const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, isActive }) => {
   const formattedDueDate = formatDate(task.dueDate);
   const statusInfo = getTaskStatusClass(task.status);
   const priorityInfo = getPriorityBadge(task.priority);
@@ -74,9 +74,11 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isActive }) => {
           <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 flex-1 pr-2">
             {task.title}
           </h4>
-          <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusInfo.color} flex-shrink-0`}>
-            {statusInfo.text}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusInfo.color} flex-shrink-0`}>
+              {statusInfo.text}
+            </span>
+          </div>
         </div>
         
         
@@ -121,6 +123,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, isActive }) => {
       </div>
     </div>
   );
-};
+});
 
 export default TaskCard;

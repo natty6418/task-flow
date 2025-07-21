@@ -6,7 +6,7 @@ import { PickersDay, PickersDayProps } from '@mui/x-date-pickers/PickersDay';
 import dayjs, { Dayjs } from 'dayjs';
 import SectionCard from './SectionCard';
 import { Task } from '@/types/type';
-import { useAuth } from '@/contexts/AuthContext';
+import { useApp } from "@/contexts/AppContext";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
@@ -21,7 +21,7 @@ export default function CalendarWidget({ onDateSelect, selectedDate }: CalendarW
     selectedDate ? dayjs(selectedDate) : null
   );
 
-  const { tasks } = useAuth();
+  const { tasks } = useApp();
   
   // Precompute task map for quick lookup
   const taskMap = React.useMemo(() => {

@@ -3,7 +3,7 @@
 import { LayoutIcon, ListIcon } from "lucide-react";
 import { Board, Task, Project } from "@/types/type";
 import BoardsList from "../boards/BoardsList";
-import KanbanBoard from "@/components/kanban/KanbanBoard";
+import KanbanBoard from "@/components/boards/kanban/KanbanBoard";
 
 interface ProjectBoardsSectionProps {
   project: Project;
@@ -14,6 +14,10 @@ interface ProjectBoardsSectionProps {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   setBoards: React.Dispatch<React.SetStateAction<Board[]>>;
   setShowAddBoardModal: (show: boolean) => void;
+  handleAddTask: () => void;
+  handleUpdateTask: (taskId: string, field: keyof Task, value: Task[keyof Task]) => void;
+  handleRemoveTask: (taskId: string) => void;
+  updatingTasks: Set<string>;
 }
 
 export default function ProjectBoardsSection({
@@ -25,6 +29,10 @@ export default function ProjectBoardsSection({
   setTasks,
   setBoards,
   setShowAddBoardModal,
+  handleAddTask,
+  handleUpdateTask,
+  handleRemoveTask,
+  updatingTasks,
 }: ProjectBoardsSectionProps) {
 
   return (
@@ -73,6 +81,10 @@ export default function ProjectBoardsSection({
             setTasks={setTasks}
             setBoards={setBoards}
             setShowAddBoardModal={setShowAddBoardModal}
+            handleAddTask={handleAddTask}
+            handleUpdateTask={handleUpdateTask}
+            handleRemoveTask={handleRemoveTask}
+            updatingTasks={updatingTasks}
           />
         </div>
       ) : (

@@ -1,167 +1,214 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Task, Board, Status } from "@/types/type";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import TaskItem from "../tasks/TaskItem";
 import TaskPicker from "../tasks/TaskPicker";
-import API from "@/services/api";
-
-import { useDebounce } from 'use-debounce';
-
+import { useDebouncedCallback } from "use-debounce";
+import { updateBoard } from "@/services/boardService";
 
 const statusColors = {
-    [Status.TODO]: "bg-gray-100 text-gray-800",
-    [Status.IN_PROGRESS]: "bg-blue-100 text-blue-800",
-    [Status.DONE]: "bg-green-100 text-green-800",
-  };
+  [Status.TODO]: "bg-gray-100 text-gray-800",
+  [Status.IN_PROGRESS]: "bg-blue-100 text-blue-800",
+  [Status.DONE]: "bg-green-100 text-green-800",
+};
 
 export default function BoardItem({
-    setExpandedBoardId,
-    board: initialBoard,
-    isExpanded,
-    setTasks,
+  setExpandedBoardId,
+  board: initialBoard,
+  isExpanded,
+  setTasks,
   setBoards,
   projectId,
-  tasks
-    
-    
-}:{
-    setExpandedBoardId: React.Dispatch<React.SetStateAction<string | null>>;
-    board: Board;
-    isExpanded: boolean;
-    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  tasks,
+  handleAddTask,
+  handleUpdateTask,
+  handleRemoveTask,
+  updatingTasks,
+}: {
+  setExpandedBoardId: React.Dispatch<React.SetStateAction<string | null>>;
+  board: Board;
+  isExpanded: boolean;
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   setBoards: React.Dispatch<React.SetStateAction<Board[]>>;
   projectId: string;
-  tasks: Task[]
-
+  tasks: Task[];
+  handleAddTask: () => void;
+  handleUpdateTask: (
+    taskId: string,
+    field: keyof Task,
+    value: Task[keyof Task]
+  ) => void;
+  handleRemoveTask: (taskId: string) => void;
+  updatingTasks: Set<string>;
 }) {
-    const [boardTasks, setBoardTasks] = useState<Task[]>(initialBoard.tasks || []);
-    const [showTaskPicker, setShowTaskPicker] = useState<string | null>(null);
-    const [board, setBoard] = useState<Board>(initialBoard);
-    const [debouncedBoard] = useDebounce(board, 1000);
-    const [isDirty, setIsDirty] = useState(false);
+  const [boardTasks, setBoardTasks] = useState<Task[]>(
+    initialBoard.tasks || []
+  );
+  const [showTaskPicker, setShowTaskPicker] = useState<string | null>(null);
+  const [board, setBoard] = useState<Board>(initialBoard);
+  const pendingChangesRef = useRef<Partial<Board>>({});
+  const originalBoardRef = useRef<Board | null>(null);
 
+  const toggleBoard = (boardId: string) => {
+    setExpandedBoardId((prevId: string | null) =>
+      prevId === boardId ? null : boardId
+    );
+    setShowTaskPicker(null); // close task picker if board changes
+  };
 
-    const toggleBoard = (boardId: string) => {
-        setExpandedBoardId((prevId: string | null) => (prevId === boardId ? null : boardId));
-        setShowTaskPicker(null); // close task picker if board changes
-      };
+  const flushChanges = useDebouncedCallback(async () => {
+    const changesToFlush = pendingChangesRef.current;
+    pendingChangesRef.current = {};
 
-      
-      useEffect(() => {
-        if (!isDirty) return;
-        const updateBoard = async () => {
-            try {
-              const response = await API.put("/board/update", {
-                id: debouncedBoard.id,
-                name: debouncedBoard.name,
-                description: debouncedBoard.description || "",
-                status: debouncedBoard.status || Status.TODO,
-                tasks: debouncedBoard.tasks || [],
-                projectId,
-              });
-              if (response.status !== 200) {
-                console.error("Error updating board:", response.data);
-                return;
-              }
-              console.log("Board updated successfully:", response.data);
-            } catch (error) {
-              console.error("Error updating board:", error);
-            }
-          }
-          if (
-            JSON.stringify(debouncedBoard) === JSON.stringify(board) 
-          ) {
-            updateBoard();
-            setIsDirty(false);
-          }
-        updateBoard();
-    }, [debouncedBoard, isDirty, projectId, board]);
-    const handleEditBoardName = (boardId: string, newName: string) => {
+    if (Object.keys(changesToFlush).length === 0) {
+      originalBoardRef.current = null;
+      return;
+    }
 
-        setBoard((prev) => ({ ...prev, name: newName })); // Update local state
-        setIsDirty(true);
-        setBoards((prev) =>
-          prev.map((board) =>
-            board.id === boardId ? { ...board, name: newName } : board
-          )
-        );
-      };
+    const payload = {
+      ...board,
+      ...changesToFlush,
+    };
+
+    try {
+      console.log("Updating board:", payload);
+      const response = await updateBoard(payload);
+      setBoards((prev) =>
+        prev.map((b) => (b.id === response.id ? { ...response, tasks: b.tasks } : b))
+      );
+      originalBoardRef.current = null;
+    } catch (error) {
+      console.error("Error updating board:", error);
+      // Rollback on failure
+      if (originalBoardRef.current) {
+        setBoard(originalBoardRef.current);
+        setBoards(prev => prev.map(b => b.id === originalBoardRef.current!.id ? originalBoardRef.current! : b));
+        originalBoardRef.current = null;
+      }
+    }
+  }, 1500);
+
+  const handleEdit = (field: keyof Board, value: string) => {
+    const trimmedValue = value.trim();
+    if (trimmedValue === board[field]) return;
+
+    if (!originalBoardRef.current) {
+      originalBoardRef.current = board;
+    }
+
+    // Optimistic UI update
+    const updatedBoard = { ...board, [field]: trimmedValue };
+    setBoard(updatedBoard);
+    setBoards((prev) =>
+      prev.map((b) =>
+        b.id === board.id ? { ...b, [field]: trimmedValue } : b
+      )
+    );
+
+    pendingChangesRef.current = {
+      ...pendingChangesRef.current,
+      [field]: trimmedValue,
+    };
+
+    flushChanges();
+  };
+  const handleEditBoardName = (boardId: string, newName: string) => {
+    handleEdit('name', newName);
+  };
+
+  const handleEditBoardDescription = (
+    boardId: string,
+    newDescription: string
+  ) => {
+    handleEdit('description', newDescription);
+  };
+  const handleAddTaskToBoard = (boardId: string, task: Task) => {
+    // Update global tasks state with boardId
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, boardId } : t))
+    );
     
-      const handleEditBoardDescription = (
-        boardId: string,
-        newDescription: string
-      ) => {
-        setBoards((prev) =>
-          prev.map((board) =>
-            board.id === boardId ? { ...board, description: newDescription } : board
-          )
-        );
-        setBoard((prev) => ({ ...prev, description: newDescription })); // Update local state
-        setIsDirty(true);
-      };
-      const handleAddTaskToBoard = (boardId: string, task: Task) => {
-          setBoardTasks((prev) => ([...prev, task]));
-          setBoards((prev) =>
-            prev.map((board) =>
-              board.id === boardId
-                ? { ...board, tasks: [...(board.tasks || []), task] }
-                : board
-            )
-          ); // Add task to the board
-          setBoard((prev)=>(
-            { ...prev, tasks: [...(prev.tasks || []), task] }
-          ))
-          setShowTaskPicker(null); // close task picker after adding
-          setExpandedBoardId(boardId); // expand the board after adding a task
-          setIsDirty(true);
-        };
-      
-        const handleRemoveTaskFromBoard = (boardId: string, taskId: string) => {
-          setBoardTasks((prev) => (
-            prev.filter((task) => task.id !== taskId)
-          ));
-          setBoards((prev) =>
-            prev.map((board) =>
-              board.id === boardId
-                ? {
-                    ...board,
-                    tasks: (board.tasks || []).filter((task) => task.id !== taskId),
-                  }
-                : board
-            )
-          ); // Remove task from the board
-          setBoard((prev)=>(
-            { ...prev, tasks: prev.tasks?.filter((task) => task.id !== taskId) }
-          ))
-          setExpandedBoardId(boardId); // expand the board after removing a task
-          setShowTaskPicker(null); // close task picker after removing
-          setIsDirty(true);
-        };
-    return (
-        <div className="group px-4 py-3 hover:bg-gray-100 border-b">
-      
+    // Update local board tasks
+    setBoardTasks((prev) => [...prev, { ...task, boardId }]);
+    
+    // Update boards state
+    setBoards((prev) =>
+      prev.map((board) =>
+        board.id === boardId
+          ? { ...board, tasks: [...(board.tasks || []), { ...task, boardId }] }
+          : board
+      )
+    );
+    
+    // Update local board state
+    setBoard((prev) => ({ ...prev, tasks: [...(prev.tasks || []), { ...task, boardId }] }));
+    try{
+      const updatedBoard = updateBoard({
+        ...board,
+        tasks: [...(board.tasks || []), { ...task, boardId }],
+      });
+    } catch (error) {
+      console.error("Error updating board with new task:", error);
+    }
+    
+    setShowTaskPicker(null); // close task picker after adding
+    setExpandedBoardId(boardId); // expand the board after adding a task
+  };
+
+  const handleRemoveTaskFromBoard = (boardId: string, taskId: string) => {
+    // Update global tasks state by removing boardId
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, boardId: undefined } : t))
+    );
+    
+    // Update local board tasks
+    setBoardTasks((prev) => prev.filter((task) => task.id !== taskId));
+    
+    // Update boards state
+    setBoards((prev) =>
+      prev.map((board) =>
+        board.id === boardId
+          ? {
+              ...board,
+              tasks: (board.tasks || []).filter((task) => task.id !== taskId),
+            }
+          : board
+      )
+    );
+    
+    // Update local board state
+    setBoard((prev) => ({
+      ...prev,
+      tasks: prev.tasks?.filter((task) => task.id !== taskId),
+    }));
+    
+    setExpandedBoardId(boardId); // expand the board after removing a task
+    setShowTaskPicker(null); // close task picker after removing
+  };
+  return (
+    <div className="group px-4 py-3 hover:bg-gray-100 border-b">
       {/* Top Row: Expand/Collapse, Title, Status */}
-      <div
-        className="flex items-center justify-between cursor-pointer"
-      >
+      <div className="flex items-center justify-between cursor-pointer">
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <ChevronDown 
-        onClick={() => toggleBoard(board.id)}
-
-            className="w-5 h-5 text-gray-500" />
+            <ChevronDown
+              onClick={() => toggleBoard(board.id)}
+              className="w-5 h-5 text-gray-500"
+            />
           ) : (
             <ChevronRight
-        onClick={() => toggleBoard(board.id)}
-
-             className="w-5 h-5 text-gray-500" />
+              onClick={() => toggleBoard(board.id)}
+              className="w-5 h-5 text-gray-500"
+            />
           )}
 
           {/* Editable Board Name */}
           <div
             contentEditable
             suppressContentEditableWarning
-            onBlur={(e) => handleEditBoardName(board.id, e.currentTarget.innerText)}
+            onBlur={(e) =>
+              handleEditBoardName(board.id, e.currentTarget.innerText)
+            }
             className="font-semibold text-gray-900 text-base truncate outline-none"
           >
             {board.name}
@@ -170,7 +217,9 @@ export default function BoardItem({
 
         {/* Status Badge */}
         <span
-          className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[board.status]}`}
+          className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+            statusColors[board.status]
+          }`}
         >
           {board.status.replace("_", " ")}
         </span>
@@ -181,10 +230,12 @@ export default function BoardItem({
         <div
           contentEditable
           suppressContentEditableWarning
-          onBlur={(e) => handleEditBoardDescription(board.id, e.currentTarget.innerText)}
+          onBlur={(e) =>
+            handleEditBoardDescription(board.id, e.currentTarget.innerText)
+          }
           className="text-sm text-gray-600 mt-2 outline-none pl-7"
         >
-          {board.description || 'Add a description...'}
+          {board.description || "Add a description..."}
         </div>
       )}
 
@@ -198,24 +249,27 @@ export default function BoardItem({
       {isExpanded && (
         <div className="mt-4 pl-7">
           <ul className="space-y-2">
-            {boardTasks.length > 0 && (
+            {boardTasks.length > 0 &&
               boardTasks.map((task: Task) => (
-                <li key={task.id} className="flex items-center justify-between gap-2">
+                <li
+                  key={task.id}
+                  className="flex items-center justify-between gap-2"
+                >
                   <TaskItem
                     task={task}
-                    setTasks={setTasks}
+                    onUpdateTask={handleUpdateTask}
+                    onRemoveTask={handleRemoveTask}
+                    isUpdating={updatingTasks.has(task.id)}
                   />
                   <button
                     onClick={() => handleRemoveTaskFromBoard(board.id, task.id)}
                     className="text-red-500 hover:text-red-700"
                     title="Remove task from board"
-                    
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </li>
-              ))
-            ) }
+              ))}
           </ul>
 
           {/* Add Task Button */}
@@ -230,7 +284,7 @@ export default function BoardItem({
 
             {showTaskPicker === board.id && (
               <TaskPicker
-                tasks={tasks}
+                tasks={tasks.filter((task) => !task.boardId)}
                 board={board}
                 setShowTaskPicker={setShowTaskPicker}
                 handleAddTaskToBoard={handleAddTaskToBoard}
@@ -240,5 +294,5 @@ export default function BoardItem({
         </div>
       )}
     </div>
-    )
+  );
 }

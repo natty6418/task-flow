@@ -153,6 +153,87 @@ class NotificationService {
       boardId: board.id,
     }, createdByUserId)
   }
+
+  async notifyBoardUpdated(boardId: string, updatedByUserId: string, newName?: string, newDescription?: string) {
+    const board = await prisma.board.findUnique({
+      where: { id: boardId },
+      include: { project: { select: { name: true } } }
+    })
+
+    if (!board) return
+
+    const changes: string[] = []
+    if (newName && newName !== board.name) changes.push(`name updated to "${newName}"`)
+    if (newDescription !== undefined && newDescription !== board.description) {
+      changes.push(`description ${newDescription ? `updated to "${newDescription}"` : 'removed'}`)
+    }
+
+    if (changes.length === 0) return // No meaningful changes to notify about
+
+    await this.notifyProjectMembers(board.projectId, {
+      type: "BOARD_UPDATED",
+      title: "Board Updated",
+      message: `Board "${board.name}" was updated: ${changes.join(", ")}`,
+      projectId: board.projectId,
+      boardId: board.id,
+    }, updatedByUserId)
+  }
+
+  async notifyBoardDeleted(boardId: string, boardName: string, projectId: string, deletedByUserId: string) {
+    await this.notifyProjectMembers(projectId, {
+      type: "BOARD_DELETED",
+      title: "Board Deleted",
+      message: `Board "${boardName}" was deleted`,
+      projectId: projectId,
+    }, deletedByUserId)
+  }
+
+  async notifyTaskMovedToBoard(taskId: string, boardId: string, movedByUserId: string) {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: { 
+        project: { select: { name: true } },
+        board: { select: { name: true } },
+        assignedTo: { select: { id: true, name: true } }
+      }
+    })
+
+    if (!task || !task.board) return
+
+    // Notify the assigned user if different from the one who moved it
+    if (task.assignedTo && task.assignedTo.id !== movedByUserId) {
+      await this.createNotification(task.assignedTo.id, {
+        type: "TASK_UPDATED",
+        title: "Task Moved",
+        message: `Your task "${task.title}" was moved to board "${task.board.name}"`,
+        projectId: task.projectId || undefined,
+        taskId: task.id,
+        boardId: task.boardId || undefined,
+      })
+    }
+
+    // Notify project members
+    if (task.projectId) {
+      await this.notifyProjectMembers(task.projectId, {
+        type: "TASK_UPDATED",
+        title: "Task Moved",
+        message: `Task "${task.title}" was moved to board "${task.board.name}"`,
+        projectId: task.projectId,
+        taskId: task.id,
+        boardId: task.boardId || undefined,
+      }, movedByUserId)
+    }
+  }
+
+  async notifyTaskRemovedFromBoard(taskId: string, taskTitle: string, boardName: string, projectId: string, removedByUserId: string) {
+    await this.notifyProjectMembers(projectId, {
+      type: "TASK_UPDATED",
+      title: "Task Removed from Board",
+      message: `Task "${taskTitle}" was removed from board "${boardName}"`,
+      projectId: projectId,
+      taskId: taskId,
+    }, removedByUserId)
+  }
 }
 
 export default new NotificationService()

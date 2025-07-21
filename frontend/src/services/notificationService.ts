@@ -39,3 +39,20 @@ const markAllNotificationsAsRead = async (): Promise<void> => {
     throw new Error(extractError(error));
   }
 };
+
+const pollNotifications = async (): Promise<{
+  unreadCount: number;
+  notifications: Notification[];
+  lastChecked: Date;
+}> => {
+  try {
+    const response = await API.get("/notifications/poll");
+    return {
+      unreadCount: response.data.unreadCount,
+      notifications: response.data.notifications,
+      lastChecked: new Date(),
+    };
+  } catch (error) {
+    throw new Error(extractError(error));
+  }
+};

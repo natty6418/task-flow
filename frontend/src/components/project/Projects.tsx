@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useApp } from "@/contexts/AppContext";
 // import { useState, useEffect } from 'react';
 // import API from "@/services/api";
 import DashboardCard from "../common/DashboardCard";
@@ -11,7 +12,8 @@ import { PlusCircle } from "lucide-react";
 
 
 export default function Projects() {
-  const { loading, projects, loadingProjects } = useAuth();
+  const { loading } = useAuth();
+  const { projects, loadingProjects } = useApp();
 
   if (loading || loadingProjects) {
     return <div className="p-6 text-center text-lg">Loading projects...</div>;

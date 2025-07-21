@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { Board, Task, Status } from '@/types/type';
 import TaskCard from './TaskCard';
@@ -13,6 +13,7 @@ interface BoardColumnProps {
   tasks: Task[];
   availableTasks?: Task[];
   onAddTaskToBoard?: (boardId: string, taskId: string) => void;
+  onRemoveTaskFromBoard?: (boardId: string, taskId: string) => void;
   onDeleteBoard?: (boardId: string) => void;
   setBoards?: React.Dispatch<React.SetStateAction<Board[]>>;
   projectId?: string;
@@ -21,11 +22,12 @@ interface BoardColumnProps {
 
 
 
-const BoardColumn: React.FC<BoardColumnProps> = ({
+const BoardColumn: React.FC<BoardColumnProps> = React.memo(({
   board: initialBoard,
   tasks,
   availableTasks = [],
   onAddTaskToBoard,
+  onRemoveTaskFromBoard,
   onDeleteBoard,
   activeTask,
   setBoards,
@@ -167,14 +169,14 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
       } ${isLoading ? 'pointer-events-none' : ''}`}
     >
       {/* Loading Overlay */}
-      {isLoading && (
+      {/* {isLoading && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center z-30">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
             <p className="text-sm font-medium text-gray-600">Updating board...</p>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Modern Header */}
       <div className="p-4 border-b border-gray-200/50">
@@ -194,12 +196,18 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
             <button
               onClick={() => setShowTaskList(prev => !prev)}
               disabled={isLoading}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={showTaskList ? 'Cancel' : 'Add Task'}
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              {showTaskList ? 'Cancel' : 'Add Task'}
+              {showTaskList ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              )}
             </button>
             {onDeleteBoard && (
               <button
@@ -284,7 +292,7 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
               <TaskCard 
                 key={task.id} 
                 task={task} 
-                isActive={activeTask?.id === task.id} 
+                isActive={activeTask?.id === task.id}
               />
             ))
           )}
@@ -327,6 +335,6 @@ const BoardColumn: React.FC<BoardColumnProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default BoardColumn;

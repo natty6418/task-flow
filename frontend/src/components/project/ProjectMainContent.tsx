@@ -87,6 +87,10 @@ export default function ProjectMainContent({
             setBoards={setBoards}
             setTasks={setTasks}
             setShowAddBoardModal={setShowAddBoardModal}
+            handleAddTask={handleAddTask}
+            handleUpdateTask={handleUpdateTask}
+            handleRemoveTask={handleRemoveTask}
+            updatingTasks={updatingTasks}
           />
         ) : (
           <ProjectTasksSection

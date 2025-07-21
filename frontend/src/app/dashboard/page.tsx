@@ -1,5 +1,6 @@
 "use client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useApp } from "@/contexts/AppContext";
 import { useState } from "react";
 
 import UnifiedTaskPanel from '@/components/dashboard/UnifiedTaskPanel';
@@ -13,7 +14,8 @@ import { Status } from '@/types/type';
 import FloatingActionButton from "@/components/common/FloatingActionButton";
 
 export default function Dashboard() {
-  const { user, loading, projects, loadingProjects, loadingTasks, tasks, setTasks } = useAuth();
+  const { user, loading } = useAuth();
+  const { projects, loadingProjects, loadingTasks, tasks, setTasks } = useApp();
   
   // Modal states
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);

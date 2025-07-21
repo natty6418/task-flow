@@ -4,6 +4,7 @@ import { LayoutDashboard, Settings, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useApp } from "@/contexts/AppContext";
 import Loader from "../common/Loader";
 
 export default function SideBar() {
@@ -11,7 +12,7 @@ export default function SideBar() {
   const router = useRouter();
 
   const [currentPath, setCurrentPath] = useState(pathname);
-  const { projects, loadingProjects } = useAuth();
+  const { projects, loadingProjects } = useApp();
 
   useEffect(() => {
     setCurrentPath(pathname);

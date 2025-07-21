@@ -6,6 +6,7 @@ import ProjectDetails from "@/components/project/ProjectDetails";
 import Loader from "@/components/common/Loader";
 import {Project} from "@/types/type"; // Adjust the import path as necessary
 import { useAuth } from "@/contexts/AuthContext";
+import { useApp } from "@/contexts/AppContext";
 
 import API from "@/services/api";
 
@@ -14,7 +15,7 @@ export default function ProjectPage() {
   const { id } = params;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const { projects } = useAuth();
+  const { projects } = useApp();
 
   useEffect(() => {
     if (id) {

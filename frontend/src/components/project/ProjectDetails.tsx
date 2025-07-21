@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import AddMemberModal from "../modals/AddMemberModal";
 import AddBoardModal from "../modals/AddBoardModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useApp } from "@/contexts/AppContext";
 import { useRouter } from "next/navigation";
 import {updateProject as updateProjectService} from "@/services/projectService";
 import { Role } from "@/types/type";
@@ -38,7 +39,8 @@ export default function ProjectDetails({ project }: { project: Project }) {
   const [debouncedName] = useDebounce(name, 2000);
   const [debouncedDescription] = useDebounce(description, 2000);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { setProjects, user } = useAuth();
+  const { user } = useAuth();
+  const { setProjects } = useApp();
   const router = useRouter();
 
   const [updatingTasks, setUpdatingTasks] = useState<Set<string>>(new Set());
