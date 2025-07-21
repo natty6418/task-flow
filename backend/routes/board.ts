@@ -210,7 +210,7 @@ router.put("/update",
         });
       });
 
-      console.log("Updated board:", updatedBoard);
+      
       res.status(200).json(updatedBoard);
     } catch (error) {
       console.error(error);

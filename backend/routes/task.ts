@@ -72,7 +72,7 @@ router.post("/create",
             return
         }
         const { title, description, dueDate, status, boardId, priority, projectId} = req.body
-        console.log(req.body)
+        
         if (!title) {
             res.status(400).json({ message: "Bad Request" })
             return
@@ -134,7 +134,7 @@ router.post("/create",
                     }
                 })
             }
-            console.log(newTask)
+            
             res.status(200).json(newTask)
         } catch (error) {
             console.error(error)

@@ -13,7 +13,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model ProjectMember {
+model ProjectMember { // relation table for many-to-many relationship between User and Project 
   id        String  @id @default(uuid())
   role      Role    @default(MEMBER)
   userId    String

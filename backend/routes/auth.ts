@@ -34,7 +34,7 @@ router.get('/google/callback',
 
 router.post('/login', async (req: Request, res: Response) => {
     const { email, password } = req.body;
-    console.log(email, password);
+ 
     try {
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
