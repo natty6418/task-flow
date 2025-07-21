@@ -3,6 +3,7 @@ import { Request, Response } from "express"
 import prisma from "../models/prismaClient"
 import passport from "passport"
 import { User } from "@prisma/client"
+import notificationService from "../services/notificationService"
 
 const router = express.Router()
 
@@ -218,6 +219,77 @@ router.post("/assign",
                     }
                 }
             })
+
+            // Send notification
+            await notificationService.notifyTaskAssigned(taskId, userId, user.id)
+
+            res.status(200).json(updatedTask)
+        } catch (error) {
+            console.error(error)
+            res.status(500).json({ error: "Internal Server Error" })
+        }
+    });
+
+router.post("/unassign",
+    passport.authenticate("jwt", { session: false }),
+    async (req: Request, res: Response) => {
+        const user = req.user as User
+        if (!user) {
+            res.status(401).json({ message: "Unauthorized" })
+            return
+        }
+        const { taskId } = req.body
+
+        if (!taskId) {
+            res.status(400).json({ message: "Bad Request" })
+            return
+        }
+
+        // 1. First verify the task exists and user has permission
+        const task = await prisma.task.findUnique({
+            where: { id: taskId },
+            include: { 
+                project: { include: { projectMemberships: true } },
+                assignedTo: { select: { id: true, name: true, email: true } }
+            }
+        })
+
+        if (!task) {
+            res.status(404).json({ message: "Task not found" })
+            return
+        }
+
+        // 2. Check if current user can unassign tasks in this project
+        if (task.project) {
+            const membership = task.project.projectMemberships.find(m => m.userId === user.id)
+            if (!membership || (membership.role !== "ADMIN" && task.project.ownerId !== user.id)) {
+                res.status(403).json({ message: "Forbidden: Cannot unassign tasks in this project" })
+                return
+            }
+        }
+
+        // 3. Check if task is currently assigned
+        if (!task.assignedToId) {
+            res.status(400).json({ message: "Task is not currently assigned" })
+            return
+        }
+
+        try {
+            const updatedTask = await prisma.task.update({
+                where: { id: taskId },
+                data: { assignedToId: null },
+                include: {
+                    assignedTo: {
+                        select: { id: true, name: true, email: true }
+                    }
+                }
+            })
+
+            // Send notification to previously assigned user
+            if (task.assignedToId) {
+                await notificationService.notifyTaskUnassigned(taskId, task.assignedToId, user.id)
+            }
+
             res.status(200).json(updatedTask)
         } catch (error) {
             console.error(error)

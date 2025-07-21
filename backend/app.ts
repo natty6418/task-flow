@@ -11,6 +11,7 @@ import { NextFunction } from "express";
 import task from "./routes/task";
 import board from "./routes/board";
 import session from 'express-session';
+import notificationRoutes from "./routes/notification"
 
 
 dotenv.config();
@@ -54,6 +55,7 @@ app.use('/user', user);
 app.use('/project', project);
 app.use('/task', task);
 app.use('/board', board);
+app.use("/notification", notificationRoutes)
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error("Global error handler caught:", err);
