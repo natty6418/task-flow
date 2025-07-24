@@ -82,25 +82,38 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-3">Theme</label>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="relative">
-                    <input type="radio" name="theme" value="light" className="sr-only peer" defaultChecked />
-                    <div className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50">
-                      <div className="w-full h-8 bg-white rounded border mb-2"></div>
-                      <p className="text-sm font-medium">Light</p>
-                    </div>
+                    <input
+                      type="radio"
+                      name="theme"
+                      value="light"
+                      id="theme-light"
+                      className="sr-only peer"
+                      defaultChecked
+                    />
+                    <label htmlFor="theme-light" className="block cursor-pointer">
+                      <div className="p-4 border-2 border-gray-200 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                        <div className="w-full h-8 bg-white rounded border mb-2"></div>
+                        <p className="text-sm font-medium">Light</p>
+                      </div>
+                    </label>
                   </div>
                   <div className="relative">
-                    <input type="radio" name="theme" value="dark" className="sr-only peer" />
-                    <div className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50">
-                      <div className="w-full h-8 bg-gray-800 rounded border mb-2"></div>
-                      <p className="text-sm font-medium">Dark</p>
-                    </div>
+                    <input id="theme-dark" type="radio" name="theme" value="dark" className="sr-only peer" />
+                    <label htmlFor="theme-dark" className="block cursor-pointer">
+                      <div className="p-4 border-2 border-gray-200 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                        <div className="w-full h-8 bg-gray-800 rounded border mb-2"></div>
+                        <p className="text-sm font-medium">Dark</p>
+                      </div>
+                    </label>
                   </div>
                   <div className="relative">
-                    <input type="radio" name="theme" value="system" className="sr-only peer" />
-                    <div className="p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50">
-                      <div className="w-full h-8 bg-gradient-to-r from-white to-gray-800 rounded border mb-2"></div>
-                      <p className="text-sm font-medium">System</p>
-                    </div>
+                    <input id="theme-system" type="radio" name="theme" value="system" className="sr-only peer" />
+                    <label htmlFor="theme-system" className="block cursor-pointer">
+                      <div className="p-4 border-2 border-gray-200 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                        <div className="w-full h-8 bg-gradient-to-r from-white to-gray-800 rounded border mb-2"></div>
+                        <p className="text-sm font-medium">System</p>
+                      </div>
+                    </label>
                   </div>
                 </div>
               </div>

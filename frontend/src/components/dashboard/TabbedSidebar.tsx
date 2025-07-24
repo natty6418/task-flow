@@ -30,6 +30,8 @@ const TabbedSidebar: React.FC<TabbedSidebarProps> = ({
           isExpanded ? 'hidden' : ''
         }`}
         onClick={() => setIsExpanded(true)}
+        title="Open sidebar"
+        aria-label="Open sidebar"
       >
         <Calendar className="w-5 h-5" />
       </button>
@@ -58,6 +60,8 @@ const TabbedSidebar: React.FC<TabbedSidebarProps> = ({
             <button
               onClick={() => setIsExpanded(false)}
               className="p-1 hover:bg-gray-100 rounded-full"
+              title="Close sidebar"
+              aria-label="Close sidebar"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>

@@ -28,13 +28,24 @@ class NotificationService {
 
   // Create notifications for all project members
   async notifyProjectMembers(projectId: string, data: NotificationData, excludeUserId?: string) {
+    console.log(`[NotificationService] Starting notification for project: ${projectId}`)
+    console.log(`[NotificationService] Notification type: ${data.type}, title: "${data.title}"`)
+    console.log(`[NotificationService] NOT excluding anyone - all members will be notified`)
+    
     const projectMembers = await prisma.projectMember.findMany({
       where: { 
-        projectId,
-        ...(excludeUserId && { userId: { not: excludeUserId } })
+        projectId
       },
       select: { userId: true }
     })
+
+    console.log(`[NotificationService] Found ${projectMembers.length} project members to notify`)
+    console.log(`[NotificationService] Member IDs: ${projectMembers.map(m => m.userId).join(', ')}`)
+
+    if (projectMembers.length === 0) {
+      console.log(`[NotificationService] No members to notify for project ${projectId}`)
+      return
+    }
 
     const notifications = projectMembers.map(member => ({
       userId: member.userId,
@@ -46,12 +57,68 @@ class NotificationService {
       boardId: data.boardId,
     }))
 
-    return await prisma.notification.createMany({
-      data: notifications
-    })
+    console.log(`[NotificationService] Creating ${notifications.length} notifications`)
+    console.log(`[NotificationService] All Member IDs: ${notifications.map(n => n.userId).join(', ')}`)
+
+    if (notifications.length === 0) {
+      console.log(`[NotificationService] No notifications to create for project ${projectId}`)
+      return
+    }
+
+    try {
+      const result = await prisma.notification.createMany({
+        data: notifications
+      })
+      console.log(`[NotificationService] Successfully created ${result.count} notifications`)
+      return result
+    } catch (error) {
+      console.error(`[NotificationService] Error creating notifications:`, error)
+      throw error
+    }
   }
 
   // Task-related notifications
+  async notifyTaskCreated(taskId: string, createdByUserId: string, projectId?: string) {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: { 
+        project: { select: { name: true } },
+        assignedTo: { select: { name: true } },
+        board: { select: { name: true } }
+      }
+    })
+
+    if (!task) return
+
+    // If task is assigned to someone other than creator, notify them
+    if (task.assignedToId && task.assignedToId !== createdByUserId) {
+      await this.createNotification(task.assignedToId, {
+        type: "TASK_ASSIGNED",
+        title: "Task Created and Assigned",
+        message: `You have been assigned to new task: ${task.title}`,
+        projectId: task.projectId || undefined,
+        taskId: task.id,
+        boardId: task.boardId || undefined,
+      })
+    }
+
+    // Notify project members about new task
+    if (task.projectId) {
+      const message = task.boardId 
+        ? `New task "${task.title}" was created in board "${task.board?.name}"`
+        : `New task "${task.title}" was created`
+      
+      await this.notifyProjectMembers(task.projectId, {
+        type: "TASK_CREATED",
+        title: "New Task Created",
+        message,
+        projectId: task.projectId,
+        taskId: task.id,
+        boardId: task.boardId || undefined,
+      }, createdByUserId)
+    }
+  }
+
   async notifyTaskAssigned(taskId: string, assignedUserId: string, assignedByUserId: string) {
     const task = await prisma.task.findUnique({
       where: { id: taskId },
@@ -233,6 +300,56 @@ class NotificationService {
       projectId: projectId,
       taskId: taskId,
     }, removedByUserId)
+  }
+
+  async notifyTaskDeleted(taskTitle: string, projectId?: string, assignedUserId?: string, deletedByUserId?: string) {
+    // Notify assigned user if they exist and are different from deleter
+    if (assignedUserId && assignedUserId !== deletedByUserId) {
+      await this.createNotification(assignedUserId, {
+        type: "TASK_DELETED",
+        title: "Task Deleted",
+        message: `Your assigned task "${taskTitle}" was deleted`,
+        projectId: projectId,
+      })
+    }
+
+    // Notify project members
+    if (projectId) {
+      await this.notifyProjectMembers(projectId, {
+        type: "TASK_DELETED",
+        title: "Task Deleted",
+        message: `Task "${taskTitle}" was deleted`,
+        projectId: projectId,
+      }, deletedByUserId)
+    }
+  }
+
+  async notifyTaskCompleted(taskId: string, completedByUserId: string) {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: { 
+        project: { select: { name: true } },
+        assignedTo: { select: { id: true, name: true } },
+        board: { select: { name: true } }
+      }
+    })
+
+    if (!task) return
+
+    // Notify project members about task completion
+    if (task.projectId) {
+      const completedBy = task.assignedTo?.id === completedByUserId ? "by assignee" : "by project member"
+      const message = `Task "${task.title}" was completed ${completedBy}`
+      
+      await this.notifyProjectMembers(task.projectId, {
+        type: "TASK_COMPLETED",
+        title: "Task Completed",
+        message,
+        projectId: task.projectId,
+        taskId: task.id,
+        boardId: task.boardId || undefined,
+      }, completedByUserId)
+    }
   }
 }
 

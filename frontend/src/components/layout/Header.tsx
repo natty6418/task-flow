@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, Menu, Mountain, User, AlertTriangle, Settings, X } from "lucide-react";
-import { clsx } from "clsx";
+import { useRouter } from "next/navigation";
 
 import Image from "next/image";
 
@@ -18,6 +18,7 @@ export default function Header() {
   const { logout, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const router = useRouter();
   
   useEffect(() => {
     if (!isMenuOpen) {
@@ -74,14 +75,14 @@ export default function Header() {
           <DropdownMenuContent className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
             <div className="p-1">
               <DropdownMenuItem
-                onClick={() => {}}
+                onClick={() => {setIsMenuOpen(false); router.push('/profile');}}
                 className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
               >
                 <User className="h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => {}}
+                onClick={() => {setIsMenuOpen(false); router.push('/settings');}}
                 className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
               >
                 <Settings className="h-4 w-4" />

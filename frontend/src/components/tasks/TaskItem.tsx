@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Task, Priority, Status } from "@/types/type";
-import { Circle, Calendar, Flag, MoreVertical, CircleCheck, ChevronDown, ChevronRight } from "lucide-react";
+import { Task, Priority, Status, ProjectMember } from "@/types/type";
+import { Circle, Calendar, Flag, MoreVertical, CircleCheck, ChevronDown, ChevronRight, User, X, Check } from "lucide-react";
 import { format } from "date-fns";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -8,11 +8,13 @@ import BulletList from '@tiptap/extension-bullet-list';
 import ListItem from '@tiptap/extension-list-item';
 import Placeholder from '@tiptap/extension-placeholder';
 
+
 type TaskItemProps = {
   task: Task;
   onUpdateTask: (taskId: string, field: keyof Task, value: Task[keyof Task]) => void;
   onRemoveTask: (taskId: string) => void;
   isUpdating: boolean;
+  projectMembers?: ProjectMember[];
 };
 
 const statusColor = {
@@ -27,15 +29,17 @@ const priorityColor = {
   [Priority.LOW]: "text-green-800 ",
 };
 
-function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating }: TaskItemProps) {
+function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers=[] }: TaskItemProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
+  const [assignmentDropdownOpen, setAssignmentDropdownOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const assignmentDropdownRef = useRef<HTMLDivElement>(null);
 
   // TipTap Editor
   const editor = useEditor({
@@ -112,6 +116,9 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating }: TaskItemProp
       if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(event.target as Node)) {
         setPriorityDropdownOpen(false);
       }
+      if (assignmentDropdownRef.current && !assignmentDropdownRef.current.contains(event.target as Node)) {
+        setAssignmentDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -127,6 +134,15 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating }: TaskItemProp
     }
   }, [task.title]);
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   const EditableTitle = () => {
     return (
       <div className="flex items-center gap-3 flex-1 w-1/2 ">
@@ -140,7 +156,7 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating }: TaskItemProp
           defaultValue={task.title}
           onBlur={(e) => handleEditField('title', e.target.value)}
           disabled={isUpdating}
-          className={`font-medium text-gray-900 w-full outline-none border-none bg-transparent focus:outline-none ${isUpdating ? 'cursor-not-allowed bg-gray-100' : ''}`}
+          className={`font-medium text-gray-900 w-full !outline-none !border-none bg-transparent !focus:outline-none !focus:ring-0 !focus:border-transparent !focus:shadow-none !shadow-none ${isUpdating ? 'cursor-not-allowed bg-gray-100' : ''}`}
           title="Task title"
         />
       </div>
@@ -275,6 +291,84 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating }: TaskItemProp
                 />
               </div>
             </div>
+
+            {/* Task Assignment */}
+            {projectMembers.length>0 && <div className="col-span-full">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Assigned To
+              </label>
+              <div className="relative">
+                <button
+                  onClick={() => setAssignmentDropdownOpen(!assignmentDropdownOpen)}
+                  disabled={isUpdating}
+                  className={`w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white hover:border-gray-400 transition-colors ${
+                    isUpdating ? 'cursor-not-allowed bg-gray-100' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {task.assignedTo ? (
+                      <>
+                        <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
+                          {getInitials(task.assignedTo.name)}
+                        </div>
+                        <span className="text-sm text-gray-900">{task.assignedTo.name}</span>
+                      </>
+                    ) : (
+                      <>
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-500">Unassigned</span>
+                      </>
+                    )}
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                </button>
+                
+                {assignmentDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-48 overflow-y-auto">
+                    {/* Unassign option */}
+                    <button
+                      onClick={() => {
+                        handleEditField('assignedToId', undefined);
+                        setAssignmentDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left"
+                    >
+                      <X className="w-4 h-4 text-gray-400" />
+                      <span className="text-gray-600">Unassigned</span>
+                    </button>
+                    
+                    {/* Divider */}
+                    <div className="border-t border-gray-100"></div>
+                    
+                    {/* Project members */}
+                    {projectMembers.map((member) => (
+                      <button
+                        aria-label={`Assign task to member ${member.user.name}`}
+                        key={member.user.id}
+                        onClick={() => {
+                          handleEditField('assignedToId', member.user.id);
+                          setAssignmentDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left ${
+                          task.assignedToId === member.user.id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
+                          {getInitials(member.user.name)}
+                        </div>
+                        <div>
+                          <div className="font-medium">{member.user.name}</div>
+                          <div className="text-xs text-gray-500">{member.user.email}</div>
+                        </div>
+                        {task.assignedToId === member.user.id && (
+                          <Check className="w-4 h-4 text-blue-600 ml-auto" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>}
 
             {/* Separator Line */}
             <div className="col-span-full border-t border-gray-200 mb-4"></div>

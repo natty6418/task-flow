@@ -1,27 +1,28 @@
 "use client";
 
 import { CheckSquare, Plus, Filter, Search } from "lucide-react";
-import { Task } from "@/types/type";
+import { Task, ProjectMember } from "@/types/type";
 import TaskItem from "../tasks/TaskItem";
 import { useState } from "react";
 
 
 interface ProjectTasksSectionProps {
   tasks: Task[];
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  
   handleAddTask: () => void;
   handleUpdateTask: (taskId: string, field: keyof Task, value: Task[keyof Task]) => void;
   handleRemoveTask: (taskId: string) => void;
   updatingTasks: Set<string>;
+  members: ProjectMember[];
 }
 
 export default function ProjectTasksSection({
-  tasks,
-  setTasks,
+  tasks, 
   handleAddTask,
   handleUpdateTask,
   handleRemoveTask,
   updatingTasks,
+  members,
 }: ProjectTasksSectionProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -48,7 +49,7 @@ export default function ProjectTasksSection({
  
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center  p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center gap-3">
           <CheckSquare className="w-5 h-5 text-gray-600" />
           <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
@@ -56,13 +57,7 @@ export default function ProjectTasksSection({
             {tasks.length}
           </span>
         </div>
-        <button
-          onClick={handleAddTask}
-          className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Task
-        </button>
+       
       </div>
 
       {/* Search and Filter Bar */}
@@ -101,9 +96,16 @@ export default function ProjectTasksSection({
           <div className="space-y-3">
             {sortedTasks.map((task) => (
               <div key={task.id} className="">
-                <TaskItem task={task} onUpdateTask={handleUpdateTask} onRemoveTask={handleRemoveTask} isUpdating={updatingTasks.has(task.id)} />
+                <TaskItem task={task} onUpdateTask={handleUpdateTask} onRemoveTask={handleRemoveTask} isUpdating={updatingTasks.has(task.id)} projectMembers={members}/>
               </div>
             ))}
+          <button
+            onClick={handleAddTask}
+            className="flex items-center gap-2 w-full p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-sm"
+          >
+          <Plus className="w-4 h-4" />
+          <span>Add task...</span>
+        </button>
           </div>
         ) : (
           <div className="text-center py-12">

@@ -147,6 +147,9 @@ router.post("/create",
                 })
             }
             
+            // Send notification about task creation
+            await notificationService.notifyTaskCreated(newTask.id, user.id, projectId);
+            
             res.status(200).json(newTask)
         } catch (error) {
             console.error(error)
@@ -312,6 +315,12 @@ router.put("/update",
         }
 
         try {
+            // Get the original task for comparison
+            const originalTask = await prisma.task.findUnique({
+                where: { id },
+                select: { title: true, description: true, status: true, dueDate: true, priority: true }
+            })
+
             const task = await prisma.task.update({
                 where: { id },
                 data: { title, 
@@ -321,6 +330,26 @@ router.put("/update",
                     priority: priority || "LOW"
                 }
             })
+
+            // Send notification about task update
+            if (originalTask) {
+                const changes: string[] = []
+                if (originalTask.title !== title) changes.push("title")
+                if (originalTask.description !== description) changes.push("description")
+                if (originalTask.status !== (status || "TODO")) changes.push("status")
+                if (originalTask.priority !== (priority || "LOW")) changes.push("priority")
+                if (dueDate && originalTask.dueDate?.toISOString() !== new Date(dueDate).toISOString()) changes.push("due date")
+
+                if (changes.length > 0) {
+                    // Special notification for task completion
+                    if (originalTask.status !== "DONE" && (status === "DONE")) {
+                        await notificationService.notifyTaskCompleted(id, user.id)
+                    } else {
+                        await notificationService.notifyTaskUpdated(id, user.id, changes)
+                    }
+                }
+            }
+
             res.status(200).json(task)
         } catch (error) {
             console.error(error)
@@ -343,9 +372,30 @@ router.delete("/delete/:id",
         }
 
         try {
+            // Get task info before deletion for notification
+            const taskToDelete = await prisma.task.findUnique({
+                where: { id },
+                include: {
+                    project: { select: { id: true, name: true } },
+                    assignedTo: { select: { id: true, name: true } },
+                    board: { select: { name: true } }
+                }
+            })
+
             const task = await prisma.task.delete({
                 where: { id }
             })
+
+            // Send notifications about task deletion
+            if (taskToDelete) {
+                await notificationService.notifyTaskDeleted(
+                    taskToDelete.title,
+                    taskToDelete.project?.id,
+                    taskToDelete.assignedTo?.id,
+                    user.id
+                )
+            }
+
             res.status(200).json(task)
         } catch (error) {
             console.error(error)

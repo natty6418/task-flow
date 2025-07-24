@@ -6,7 +6,7 @@ import BoardsList from "../boards/BoardsList";
 import KanbanBoard from "@/components/boards/kanban/KanbanBoard";
 
 interface ProjectBoardsSectionProps {
-  project: Project;
+  projectId: string;
   boards: Board[];
   tasks: Task[];
   boardView: "list" | "kanban";
@@ -21,7 +21,7 @@ interface ProjectBoardsSectionProps {
 }
 
 export default function ProjectBoardsSection({
-  project,
+  projectId,
   boards,
   tasks,
   boardView,
@@ -77,7 +77,7 @@ export default function ProjectBoardsSection({
           <BoardsList
             boards={boards}
             tasks={tasks}
-            projectId={project.id}
+            projectId={projectId}
             setTasks={setTasks}
             setBoards={setBoards}
             setShowAddBoardModal={setShowAddBoardModal}
@@ -94,11 +94,11 @@ export default function ProjectBoardsSection({
               <KanbanBoard
                 setTasks={setTasks}
                 setBoards={setBoards}
-                projectId={project.id}
+                projectId={projectId}
                 boards={boards}
                 tasks={tasks}
                 onAddBoard={() => setShowAddBoardModal(true)}
-                project={project}
+                
               />
               {/* Add Board Button */}
               {/* <div className="absolute right-4 top-4 z-10">

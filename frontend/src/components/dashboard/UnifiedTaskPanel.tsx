@@ -128,10 +128,23 @@ const UnifiedTaskPanel: React.FC<UnifiedTaskPanelProps> = ({
     [setTasks]
   );
 
+  const getUniqueTaskName = useCallback(() => {
+    const existingNames = new Set(tasks.map((task) => task.title.toLowerCase()));
+    let newName = "Untitled Task";
+    let counter = 1;
+
+    while (existingNames.has(newName.toLowerCase())) {
+      newName = `Untitled Task ${counter}`;
+      counter++;
+    }
+
+    return newName;
+  }, [tasks]);
+
   const handleAddTask = (status: Status) => {
     const newTask: Task = {
       id: `temp-${uuidv4()}`,
-      title: "New Task",
+      title: getUniqueTaskName(),
       description: "",
       status,
       priority: Priority.MEDIUM,
@@ -245,7 +258,7 @@ const UnifiedTaskPanel: React.FC<UnifiedTaskPanelProps> = ({
   return (
     <SectionCard 
       title={filteredDate ? `Tasks for ${filteredDate.toLocaleDateString()}` : "My Tasks"}
-      className="relative"
+      className="relative h-full"
     >
       {/* Task Overview Summary */}
       <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">

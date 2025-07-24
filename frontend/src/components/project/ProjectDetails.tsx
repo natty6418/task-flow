@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import NewTaskModal from "../modals/NewTaskModal";
 import { Project } from "@/types/type";
 import { useDebounce } from "use-debounce";
@@ -21,10 +21,10 @@ import ProjectMainContent from "./ProjectMainContent";
 import ProjectStatsPanel from "./ProjectStatsPanel";
 import ProjectMembersPanel from "./ProjectMembersPanel";
 import ProjectRecentTasksPanel from "./ProjectRecentTasksPanel";
-import { createTask , deleteTask, updateTask} from "@/services/taskSevice";
+import { createTask , deleteTask, updateTask, assignTask} from "@/services/taskSevice";
 import { useDebouncedCallback } from "use-debounce";
 
-export default function ProjectDetails({ project }: { project: Project }) {
+export default function ProjectDetails({ project, setProject }: { project: Project, setProject: (project: Project) => void; }) {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
   const [members, setMembers] = useState(project.projectMemberships);
@@ -47,10 +47,19 @@ export default function ProjectDetails({ project }: { project: Project }) {
   const pendingChangesRef = useRef<Record<string, Partial<Task>>>({});
   const originalTasksRef = useRef<Record<string, Task>>({});
 
+  useEffect(() => {
+    setProject({
+      ...project,
+      name: debouncedName,
+      description: debouncedDescription,
+      projectMemberships: members,
+      boards: boards,
+      tasks: tasks,
+    });
+  }, [debouncedName, debouncedDescription, members, boards, tasks]);
 
-
+  console.log("Project Members:", members);
   const isAdmin = members.some((m) => m.user.id === user?.id && m.role === Role.ADMIN);
-
   const handleRemoveMember = async (id: string) => {
     if (!confirm("Are you sure you want to remove this member?")) return;
 
@@ -124,10 +133,23 @@ export default function ProjectDetails({ project }: { project: Project }) {
     }
   };
 
+  const getUniqueTaskName = useCallback(() => {
+    const existingNames = new Set(tasks.map((task) => task.title.toLowerCase()));
+    let newName = "Untitled Task";
+    let counter = 1;
+
+    while (existingNames.has(newName.toLowerCase())) {
+      newName = `Untitled Task ${counter}`;
+      counter++;
+    }
+
+    return newName;
+  }, [tasks]);
+
    const handleAddTask = () => {
     const newTask: Task = {
       id: `temp-${uuidv4()}`,
-      title: "New Task",
+      title: getUniqueTaskName(),
       description: "",
       status: Status.TODO,
       priority: Priority.MEDIUM,
@@ -216,6 +238,68 @@ export default function ProjectDetails({ project }: { project: Project }) {
     await Promise.all(updatePromises);
   }, 1500);
 
+  // Add this new function to handle task assignment
+  const handleTaskAssignment = async (taskId: string, assignedToId: string | undefined) => {
+    const currentTask = tasks.find((t) => t.id === taskId);
+    if (!currentTask) return;
+
+    try {
+      setUpdatingTasks((prev) => new Set(prev).add(taskId));
+
+      // Optimistic UI update
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId
+            ? { 
+                ...task, 
+                assignedToId, 
+                assignedTo: assignedToId 
+                  ? members.find(m => m.user.id === assignedToId)?.user 
+                  : undefined,
+                updatedAt: new Date() 
+              }
+            : task
+        )
+      );
+
+      let updatedTask;
+      if (assignedToId) {
+        // Assign task
+        updatedTask = await assignTask(taskId, assignedToId);
+      } else {
+        // Unassign task - use the generic update task with assignedToId: undefined
+        updatedTask = await updateTask({ ...currentTask, assignedToId: undefined, assignedTo: undefined });
+      }
+
+      // Update with server response
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId ? updatedTask : task
+        )
+      );
+
+      toast.success(assignedToId ? 'Task assigned successfully' : 'Task unassigned successfully');
+
+    } catch (error) {
+      console.error('Failed to update task assignment:', error);
+      
+      // Rollback optimistic update
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === taskId ? currentTask : task
+        )
+      );
+      
+      toast.error('Failed to update task assignment');
+    } finally {
+      setUpdatingTasks((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
+    }
+  };
+
   const handleUpdateTask = (
     taskId: string,
     field: keyof Task,
@@ -229,6 +313,12 @@ export default function ProjectDetails({ project }: { project: Project }) {
       return; // No change, don't do anything
     }
 
+    // Handle assignedToId changes with dedicated services
+    if (field === 'assignedToId') {
+      handleTaskAssignment(taskId, value as string | undefined);
+      return;
+    }
+  
     // Store the original task state if this is the first change in a batch
     if (!originalTasksRef.current[taskId]) {
       originalTasksRef.current[taskId] = currentTask;
@@ -282,9 +372,10 @@ export default function ProjectDetails({ project }: { project: Project }) {
           {/* Left Column - Main Content */}
           <div className="xl:col-span-3">
             <ProjectMainContent
-              project={project}
+              projectId={project.id}
               boards={boards}
               tasks={tasks}
+              members={members}
               boardView={boardView}
               setBoardView={setBoardView}
               setTasks={setTasks}

@@ -8,11 +8,16 @@ interface ProjectsProps {
 }
 
 const Projects: React.FC<ProjectsProps> = ({ projects }) => {
+  // Show only the 3 most recently created projects
+  const recentProjects = projects
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3);
+
   return (
-    <SectionCard title="Projects">
+    <SectionCard title="Recent Projects">
       <div className="space-y-4">
-        {projects.length > 0 ? (
-          projects.map((project) => {
+        {recentProjects.length > 0 ? (
+          recentProjects.map((project) => {
             // Calculate project progress
             const totalTasks = project.tasks?.length || 0;
             const completedTasks = project.tasks?.filter(task => task.status === 'DONE').length || 0;
@@ -61,8 +66,18 @@ const Projects: React.FC<ProjectsProps> = ({ projects }) => {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${progressPercentage}%` }}
+                      className={`bg-blue-500 h-2 rounded-full transition-all duration-300 ${
+                        progressPercentage === 0 ? 'w-0' : 
+                        progressPercentage < 10 ? 'w-[10%]' :
+                        progressPercentage < 20 ? 'w-[20%]' :
+                        progressPercentage < 30 ? 'w-[30%]' :
+                        progressPercentage < 40 ? 'w-[40%]' :
+                        progressPercentage < 50 ? 'w-[50%]' :
+                        progressPercentage < 60 ? 'w-[60%]' :
+                        progressPercentage < 70 ? 'w-[70%]' :
+                        progressPercentage < 80 ? 'w-[80%]' :
+                        progressPercentage < 90 ? 'w-[90%]' : 'w-full'
+                      }`}
                     />
                   </div>
                 </div>
@@ -72,6 +87,29 @@ const Projects: React.FC<ProjectsProps> = ({ projects }) => {
         ) : (
           <div className="text-center text-gray-400 text-sm pt-8">
             No projects yet. Create your first project to get started!
+          </div>
+        )}
+        
+        {/* View All Projects Link */}
+        {projects.length > 3 && (
+          <div className="pt-4 border-t border-gray-100">
+            <Link 
+              href="/project" 
+              className="block text-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              View all {projects.length} projects →
+            </Link>
+          </div>
+        )}
+        
+        {recentProjects.length > 0 && projects.length <= 3 && projects.length > 0 && (
+          <div className="pt-4 border-t border-gray-100">
+            <Link 
+              href="/project" 
+              className="block text-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              Manage projects →
+            </Link>
           </div>
         )}
       </div>

@@ -44,7 +44,7 @@ export type User = {
     tasks: Task[];
     createdAt: Date;
     updatedAt: Date;
-    project: Project;
+    project?: Project;
   };
   
   export type Task = {
@@ -79,9 +79,11 @@ export type User = {
 }
 
 export enum NotificationType {
+  TASK_CREATED = 'TASK_CREATED',
+  TASK_UPDATED = 'TASK_UPDATED',
   TASK_ASSIGNED = 'TASK_ASSIGNED',
   TASK_UNASSIGNED = 'TASK_UNASSIGNED',
-  TASK_UPDATED = 'TASK_UPDATED',
+  TASK_DELETED = 'TASK_DELETED',
   TASK_COMPLETED = 'TASK_COMPLETED',
   BOARD_CREATED = 'BOARD_CREATED',
   BOARD_UPDATED = 'BOARD_UPDATED',

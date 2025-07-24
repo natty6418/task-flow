@@ -42,7 +42,7 @@ router.get("/poll",
         orderBy: { createdAt: 'desc' },
         take: 10 // Limit to recent 10
       })
-
+      console.log(`[NotificationService] Polling for user ${user.id} - Unread Count: ${unreadCount}, Recent Notifications: ${recentNotifications.length}`)
       res.json({
         unreadCount,
         recentNotifications,

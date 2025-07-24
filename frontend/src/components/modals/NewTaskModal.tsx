@@ -68,6 +68,8 @@ export default function NewTaskModal({ projectId, setTasks, onClose, boardId }: 
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="Close"
+            aria-label="Close"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -106,6 +108,7 @@ export default function NewTaskModal({ projectId, setTasks, onClose, boardId }: 
                 Priority
               </label>
               <select
+                title="Select priority"
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -127,6 +130,8 @@ export default function NewTaskModal({ projectId, setTasks, onClose, boardId }: 
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                title="Select due date"
+                placeholder="Select due date"
               />
             </div>
           </div>

@@ -12,9 +12,19 @@ const extractError = (err: unknown): string => {
 };
 
 // 🔹 Fetch all notifications for the authenticated user
-const fetchNotifications = async (): Promise<Notification[]> => {
+const fetchNotifications = async (params?: {
+  page?: number;
+  limit?: number;
+}): Promise<{
+  notifications: Notification[];
+  pagination:{
+    total: number;
+    page: number;
+    limit: number;
+  }
+}> => {
   try {
-    const response = await API.get("/notifications");
+    const response = await API.get("/notification", { params });
     return response.data;
   } catch (error) {
     throw new Error(extractError(error));
@@ -25,7 +35,7 @@ const fetchNotifications = async (): Promise<Notification[]> => {
 // 🔹 Mark a notification as read
 const markNotificationAsRead = async (notificationId: string): Promise<void> => {
   try {
-    await API.patch(`/notifications/${notificationId}/read`);
+    await API.patch(`/notification/${notificationId}/read`);
   } catch (error) {
     throw new Error(extractError(error));
   }
@@ -34,7 +44,7 @@ const markNotificationAsRead = async (notificationId: string): Promise<void> => 
 // Mark all notifications as read
 const markAllNotificationsAsRead = async (): Promise<void> => {
   try {
-    await API.patch("/notifications/read-all");
+    await API.patch("/notification/read-all");
   } catch (error) {
     throw new Error(extractError(error));
   }
@@ -46,13 +56,15 @@ const pollNotifications = async (): Promise<{
   lastChecked: Date;
 }> => {
   try {
-    const response = await API.get("/notifications/poll");
+    const response = await API.get("/notification/poll");
     return {
       unreadCount: response.data.unreadCount,
-      notifications: response.data.notifications,
+      notifications: response.data.recentNotifications,
       lastChecked: new Date(),
     };
   } catch (error) {
     throw new Error(extractError(error));
   }
 };
+
+export { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, pollNotifications };

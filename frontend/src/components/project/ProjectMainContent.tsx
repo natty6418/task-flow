@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Layout, CheckSquare } from "lucide-react";
-import { Task, Board, Project } from "@/types/type";
+import { Task, Board, ProjectMember} from "@/types/type";
 import ProjectBoardsSection from "./ProjectBoardsSection";
 import ProjectTasksSection from "./ProjectTasksSection";
 
 interface ProjectMainContentProps {
-  project: Project;
+  projectId: string;
   boards: Board[];
   tasks: Task[];
   boardView: "list" | "kanban";
@@ -19,10 +19,11 @@ interface ProjectMainContentProps {
   handleUpdateTask: (taskId: string, field: keyof Task, value: Task[keyof Task]) => void;
   handleRemoveTask: (taskId: string) => void;
   updatingTasks: Set<string>;
+  members: ProjectMember[];
 }
 
 export default function ProjectMainContent({
-  project,
+  projectId,
   boards,
   tasks,
   boardView,
@@ -34,8 +35,9 @@ export default function ProjectMainContent({
   handleUpdateTask,
   handleRemoveTask,
   updatingTasks,
+  members,
 }: ProjectMainContentProps) {
-  const [activeTab, setActiveTab] = useState<"boards" | "tasks">("boards");
+  const [activeTab, setActiveTab] = useState<"boards" | "tasks">("tasks");
 
   return (
     <div className="space-y-6">
@@ -81,7 +83,7 @@ export default function ProjectMainContent({
           <ProjectBoardsSection
             boards={boards}
             tasks={tasks}
-            project={project}
+            projectId={projectId}
             boardView={boardView}
             setBoardView={setBoardView}
             setBoards={setBoards}
@@ -95,11 +97,12 @@ export default function ProjectMainContent({
         ) : (
           <ProjectTasksSection
             tasks={tasks}
-            setTasks={setTasks}
+           
             handleAddTask={handleAddTask}
             handleUpdateTask={handleUpdateTask}
             handleRemoveTask={handleRemoveTask}
             updatingTasks={updatingTasks}
+            members={members}
           />
         )}
       </div>

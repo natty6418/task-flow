@@ -18,7 +18,6 @@ import { updateBoard } from "@/services/boardService";
 import { Plus, Trash2 } from "lucide-react";
 import { Status } from "@/types/type";
 import { createBoard, deleteBoard } from "@/services/boardService";
-import { Project } from "@/types/type";
 
 interface KanbanBoardProps {
   boards: Board[];
@@ -27,7 +26,7 @@ interface KanbanBoardProps {
   setBoards: React.Dispatch<React.SetStateAction<Board[]>>;
   projectId: string;
   onAddBoard?: () => void;
-  project: Project;
+  
 }
 
 const DeleteZone = () => {
@@ -55,7 +54,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   setBoards,
   projectId,
   onAddBoard,
-  project,
+  
 }) => {
   const sensors = useSensors(useSensor(PointerSensor));
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
@@ -87,7 +86,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     tasks: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-    project
+    
   }
 
   const sortedBoards = useMemo(() => {
