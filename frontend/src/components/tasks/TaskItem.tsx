@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Task, Priority, Status, ProjectMember } from "@/types/type";
+import { Task, Priority, Status, ProjectMember, Role } from "@/types/type";
 import { Circle, Calendar, Flag, MoreVertical, CircleCheck, ChevronDown, ChevronRight, User, X, Check } from "lucide-react";
 import { format } from "date-fns";
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -7,6 +7,7 @@ import StarterKit from '@tiptap/starter-kit';
 import BulletList from '@tiptap/extension-bullet-list';
 import ListItem from '@tiptap/extension-list-item';
 import Placeholder from '@tiptap/extension-placeholder';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 type TaskItemProps = {
@@ -36,10 +37,22 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
   const [assignmentDropdownOpen, setAssignmentDropdownOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   
+  const { user } = useAuth();
+  
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const assignmentDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check if user can edit this task
+  const canEdit = projectMembers.length === 0 || 
+    projectMembers.some(member => member.user.id === user?.id && member.role === Role.ADMIN) ||
+    task.assignedToId === user?.id;
+
+  // Check if user can only edit status (assigned users who are not admins)
+  const canOnlyEditStatus = projectMembers.length > 0 && 
+    task.assignedToId === user?.id && 
+    !projectMembers.some(member => member.user.id === user?.id && member.role === Role.ADMIN);
 
   // TipTap Editor
   const editor = useEditor({
@@ -59,11 +72,11 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
         },
       }),
       Placeholder.configure({
-        placeholder: 'Click to start adding bullet points...',
+        placeholder: canEdit ? (canOnlyEditStatus ? 'Read-only - Only status can be edited' : 'Click to start adding bullet points...') : 'Read-only task',
       }),
     ],
     content: task.description || '',
-    editable: !isUpdating,
+    editable: canEdit && !isUpdating && !canOnlyEditStatus,
     immediatelyRender: false, // Fix SSR hydration issues
     onUpdate: ({ editor }) => {
       // Don't save immediately, just track local changes
@@ -104,6 +117,11 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
   }, [editor]);
 
   const handleEditField = (field: keyof Task, value: Task[keyof Task]) => {
+    if (!canEdit) return; // Prevent editing if user doesn't have permission
+    
+    // If user can only edit status, restrict to status field only
+    if (canOnlyEditStatus && field !== 'status') return;
+    
     onUpdateTask(task.id, field, value);
   };
 
@@ -155,9 +173,12 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
           ref={titleInputRef}
           defaultValue={task.title}
           onBlur={(e) => handleEditField('title', e.target.value)}
-          disabled={isUpdating}
-          className={`font-medium text-gray-900 w-full !outline-none !border-none bg-transparent !focus:outline-none !focus:ring-0 !focus:border-transparent !focus:shadow-none !shadow-none ${isUpdating ? 'cursor-not-allowed bg-gray-100' : ''}`}
-          title="Task title"
+          disabled={!canEdit || isUpdating || canOnlyEditStatus}
+          className={`font-medium text-gray-900 w-full !outline-none !border-none bg-transparent !focus:outline-none !focus:ring-0 !focus:border-transparent !focus:shadow-none !shadow-none ${
+            !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed bg-gray-100' : ''
+          }`}
+          title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Task title") : "Read-only task"}
+          readOnly={!canEdit || canOnlyEditStatus}
         />
       </div>
     );
@@ -185,25 +206,29 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
           <div className="flex items-center gap-1 min-w-[60px]">
             <input
               type="date"
-              disabled={isUpdating}
+              disabled={!canEdit || isUpdating || canOnlyEditStatus}
               value={task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : ""}
               onChange={(e) => handleEditField("dueDate", e.target.value ? new Date(e.target.value) : undefined)}
-              className={`bg-transparent outline-none text-xs ${isUpdating ? 'cursor-not-allowed' : ''}`}
-              title="Due date"
+              className={`bg-transparent outline-none text-xs ${
+                !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+              title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Due date") : "Read-only task"}
             />
           </div>
           <div ref={priorityDropdownRef} className="relative min-w-[120px]">
             <button
-              onClick={() => setPriorityDropdownOpen(!priorityDropdownOpen)}
-              disabled={isUpdating}
-              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors hover:shadow-sm ${priorityColor[task.priority]} w-full justify-center ${isUpdating ? 'cursor-not-allowed bg-gray-100' : ''}`}
-              title="Priority"
+              onClick={() => canEdit && !canOnlyEditStatus && setPriorityDropdownOpen(!priorityDropdownOpen)}
+              disabled={!canEdit || isUpdating || canOnlyEditStatus}
+              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors hover:shadow-sm ${priorityColor[task.priority]} w-full justify-center ${
+                !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+              title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Priority") : "Read-only task"}
             >
               <Flag className="w-3 h-3" />
               <span>{task.priority}</span>
-              <ChevronDown className="w-3 h-3" />
+              {canEdit && !canOnlyEditStatus && <ChevronDown className="w-3 h-3" />}
             </button>
-            {priorityDropdownOpen && (
+            {priorityDropdownOpen && canEdit && !canOnlyEditStatus && (
               <div className="absolute top-8 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
                 {Object.values(Priority).map((priority) => (
                   <button
@@ -224,15 +249,17 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
           </div>
           <div ref={statusDropdownRef} className="relative min-w-[120px]">
             <button
-              onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-              disabled={isUpdating}
-              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors hover:shadow-sm ${statusColor[task.status]} w-full justify-center ${isUpdating ? 'cursor-not-allowed bg-gray-100' : ''}`}
-              title="Status"
+              onClick={() => canEdit && setStatusDropdownOpen(!statusDropdownOpen)}
+              disabled={!canEdit || isUpdating}
+              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors hover:shadow-sm ${statusColor[task.status]} w-full justify-center ${
+                !canEdit || isUpdating ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+              title={canEdit ? "Status" : "Read-only task"}
             >
               <span>{task.status.replace("_", " ")}</span>
-              <ChevronDown className="w-3 h-3" />
+              {canEdit && <ChevronDown className="w-3 h-3" />}
             </button>
-            {statusDropdownOpen && (
+            {statusDropdownOpen && canEdit && (
               <div className="absolute top-8 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
                 {Object.values(Status).map((status) => (
                   <button
@@ -253,14 +280,16 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
           </div>
         </div>
         <button
-          onClick={() => setMenuOpen((prev) => !prev)}
-          disabled={isUpdating}
-          className={`hover:bg-gray-200 p-1 rounded ml-2 ${isUpdating ? 'cursor-not-allowed' : ''}`}
-          title="Task options"
+          onClick={() => canEdit && !canOnlyEditStatus && setMenuOpen((prev) => !prev)}
+          disabled={!canEdit || isUpdating || canOnlyEditStatus}
+          className={`hover:bg-gray-200 p-1 rounded ml-2 ${
+            !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed opacity-50' : ''
+          }`}
+          title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Task options") : "Read-only task"}
         >
           <MoreVertical className="w-5 h-5 text-gray-500" />
         </button>
-        {menuOpen && (
+        {menuOpen && canEdit && !canOnlyEditStatus && (
           <div className="absolute right-0 mt-24 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-10">
             <button
               onClick={() => {
@@ -278,6 +307,24 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
       {/* Expanded Task Details */}
       {isExpanded && (
         <div className="bg-gray-50 px-8 py-4 border-t border-gray-100">
+          {/* Read-only notice for project tasks */}
+          {projectMembers.length > 0 && !canEdit && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+              <p className="text-sm text-blue-700">
+                <strong>Read-only:</strong> This task can only be edited by project administrators or the assigned user.
+              </p>
+            </div>
+          )}
+          
+          {/* Limited editing notice for assigned users */}
+          {canOnlyEditStatus && (
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
+              <p className="text-sm text-amber-700">
+                <strong>Limited editing:</strong> You can only change the status of this task. Contact a project administrator for other changes.
+              </p>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Task Description */}
             <div className="col-span-full">
@@ -299,19 +346,22 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
               </label>
               <div className="relative">
                 <button
-                  onClick={() => setAssignmentDropdownOpen(!assignmentDropdownOpen)}
-                  disabled={isUpdating}
+                  onClick={() => canEdit && !canOnlyEditStatus && setAssignmentDropdownOpen(!assignmentDropdownOpen)}
+                  disabled={!canEdit || isUpdating || canOnlyEditStatus}
                   className={`w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white hover:border-gray-400 transition-colors ${
-                    isUpdating ? 'cursor-not-allowed bg-gray-100' : ''
+                    !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed bg-gray-100 opacity-50' : ''
                   }`}
+                  title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Click to assign task") : "Read-only task"}
                 >
                   <div className="flex items-center gap-2">
-                    {task.assignedTo ? (
+                    {task.assignedToId && projectMembers.find(member => member.user.id === task.assignedToId) ? (
                       <>
                         <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
-                          {getInitials(task.assignedTo.name)}
+                          {getInitials(projectMembers.find(member => member.user.id === task.assignedToId)?.user.name ?? "")}
                         </div>
-                        <span className="text-sm text-gray-900">{task.assignedTo.name}</span>
+                        <span className="text-sm text-gray-900">
+                          {projectMembers.find(member => member.user.id === task.assignedToId)?.user.name ?? ""}
+                        </span>
                       </>
                     ) : (
                       <>
@@ -323,7 +373,7 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </button>
                 
-                {assignmentDropdownOpen && (
+                {assignmentDropdownOpen && canEdit && !canOnlyEditStatus && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-48 overflow-y-auto">
                     {/* Unassign option */}
                     <button
@@ -356,9 +406,18 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
                         <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
                           {getInitials(member.user.name)}
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <div className="font-medium">{member.user.name}</div>
-                          <div className="text-xs text-gray-500">{member.user.email}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">{member.user.email}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              member.role === 'ADMIN' 
+                                ? 'bg-purple-100 text-purple-700' 
+                                : 'bg-green-100 text-green-700'
+                            }`}>
+                              {member.role}
+                            </span>
+                          </div>
                         </div>
                         {task.assignedToId === member.user.id && (
                           <Check className="w-4 h-4 text-blue-600 ml-auto" />

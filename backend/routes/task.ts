@@ -314,6 +314,41 @@ router.put("/update",
             return
         }
 
+        // Check if task exists and get project info
+        const existingTask = await prisma.task.findUnique({
+            where: { id },
+            include: { 
+                project: { 
+                    include: { projectMemberships: true } 
+                } 
+            }
+        })
+
+        if (!existingTask) {
+            res.status(404).json({ message: "Task not found" })
+            return
+        }
+
+        // If task belongs to a project, check permissions
+        if (existingTask.project) {
+            const membership = existingTask.project.projectMemberships.find(m => m.userId === user.id)
+            const isOwnerOrAdmin = membership && (membership.role === "ADMIN" || existingTask.project.ownerId === user.id)
+            const isAssignedUser = existingTask.assignedToId === user.id
+            
+            // Check if user is trying to update only the status
+            const updatingOnlyStatus = Object.keys(req.body).filter(key => key !== 'id' && req.body[key] !== undefined).length === 1 && status !== undefined
+            
+            if (!isOwnerOrAdmin && !isAssignedUser) {
+                res.status(403).json({ message: "Forbidden: You can only edit tasks you own, are assigned to, or have admin rights for" })
+                return
+            }
+            
+            if (!isOwnerOrAdmin && isAssignedUser && !updatingOnlyStatus) {
+                res.status(403).json({ message: "Forbidden: Assigned users can only update task status" })
+                return
+            }
+        }
+
         try {
             // Get the original task for comparison
             const originalTask = await prisma.task.findUnique({
@@ -371,30 +406,45 @@ router.delete("/delete/:id",
             return
         }
 
-        try {
-            // Get task info before deletion for notification
-            const taskToDelete = await prisma.task.findUnique({
-                where: { id },
-                include: {
-                    project: { select: { id: true, name: true } },
-                    assignedTo: { select: { id: true, name: true } },
-                    board: { select: { name: true } }
-                }
-            })
+        // Get task info and check permissions before deletion
+        const taskToDelete = await prisma.task.findUnique({
+            where: { id },
+            include: {
+                project: { 
+                    select: { id: true, name: true, ownerId: true },
+                    include: { projectMemberships: true }
+                },
+                assignedTo: { select: { id: true, name: true } },
+                board: { select: { name: true } }
+            }
+        })
 
+        if (!taskToDelete) {
+            res.status(404).json({ message: "Task not found" })
+            return
+        }
+
+        // If task belongs to a project, check permissions
+        if (taskToDelete.project) {
+            const membership = taskToDelete.project.projectMemberships.find(m => m.userId === user.id)
+            if (!membership || (membership.role !== "ADMIN" && taskToDelete.project.ownerId !== user.id)) {
+                res.status(403).json({ message: "Forbidden: Only project owners or admins can delete project tasks" })
+                return
+            }
+        }
+
+        try {
             const task = await prisma.task.delete({
                 where: { id }
             })
 
             // Send notifications about task deletion
-            if (taskToDelete) {
-                await notificationService.notifyTaskDeleted(
-                    taskToDelete.title,
-                    taskToDelete.project?.id,
-                    taskToDelete.assignedTo?.id,
-                    user.id
-                )
-            }
+            await notificationService.notifyTaskDeleted(
+                taskToDelete.title,
+                taskToDelete.project?.id,
+                taskToDelete.assignedTo?.id,
+                user.id
+            )
 
             res.status(200).json(task)
         } catch (error) {

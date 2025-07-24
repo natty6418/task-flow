@@ -58,7 +58,7 @@ export default function ProjectDetails({ project, setProject }: { project: Proje
     });
   }, [debouncedName, debouncedDescription, members, boards, tasks]);
 
-  console.log("Project Members:", members);
+  
   const isAdmin = members.some((m) => m.user.id === user?.id && m.role === Role.ADMIN);
   const handleRemoveMember = async (id: string) => {
     if (!confirm("Are you sure you want to remove this member?")) return;

@@ -77,7 +77,16 @@ router.get("/", passport.authenticate("jwt", { session: false }),
         }
         try {
             const projects = await prisma.project.findMany({
-                where: { ownerId: user.id },
+                where: {
+                    OR: [
+                        { ownerId: user.id }, // Projects user owns
+                        { 
+                            projectMemberships: { 
+                                some: { userId: user.id } 
+                            } 
+                        } // Projects user is a member of
+                    ]
+                },
                 include: {
                     projectMemberships: true,   
                     members: true,            
