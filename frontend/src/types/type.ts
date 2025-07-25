@@ -78,6 +78,71 @@ export type User = {
   createdAt: Date; 
 }
 
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  projectId?: string;
+  boardId?: string;
+  taskId?: string;
+  action: ActionType;
+  message: string;
+  createdAt: Date; // or Date if you’re not using JSON APIs
+  diffData?: DiffData; // Optional field for detailed changes
+
+  // Optional related data
+  user?: User;
+  task?: Task;
+  board?: Board;
+  project?: Project;
+    
+}
+
+type DiffData = {
+  changes: {
+    [fieldName: string]: {
+      oldValue: any
+      newValue: any
+      type: 'added' | 'removed' | 'modified'
+      textDiff?: Array<{
+        value: string
+        added?: boolean
+        removed?: boolean
+      }>
+    }
+  }
+  summary: {
+    fieldsChanged: string[]
+    changeCount: number
+  }
+  processed?: {
+    assignedTo?: { old: string; new: string }
+    board?: { old: string; new: string }
+    [key: string]: any
+  }
+}
+
+export enum ActionType {
+  TASK_CREATED = "TASK_CREATED",
+  TASK_UPDATED = "TASK_UPDATED",
+  TASK_DELETED = "TASK_DELETED",
+  TASK_ASSIGNED = "TASK_ASSIGNED",
+  TASK_UNASSIGNED = "TASK_UNASSIGNED",
+  TASK_COMPLETED = "TASK_COMPLETED",
+
+  BOARD_CREATED = "BOARD_CREATED",
+  BOARD_UPDATED = "BOARD_UPDATED",
+  BOARD_DELETED = "BOARD_DELETED",
+
+  PROJECT_CREATED = "PROJECT_CREATED",
+  PROJECT_UPDATED = "PROJECT_UPDATED",
+  PROJECT_MEMBER_ADDED = "PROJECT_MEMBER_ADDED",
+  PROJECT_MEMBER_REMOVED = "PROJECT_MEMBER_REMOVED",
+
+  COMMENT_ADDED = "COMMENT_ADDED"
+}
+
+
+
 export enum NotificationType {
   TASK_CREATED = 'TASK_CREATED',
   TASK_UPDATED = 'TASK_UPDATED',

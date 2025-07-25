@@ -1,135 +1,184 @@
-// components/dashboard/RecentActivity.tsx
+// components/dashboard/ActivityFeed.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import SectionCard from './SectionCard';
-import { Clock, CheckCircle, UserPlus, FolderPlus, Bell, Trash2, Users, Calendar, ArrowRight } from 'lucide-react';
-import { Notification, NotificationType } from '@/types/type';
-import { fetchNotifications, pollNotifications } from '@/services/notificationService';
+import { 
+  Clock, 
+  CheckCircle, 
+  UserPlus, 
+  FolderPlus, 
+  Edit3, 
+  Trash2, 
+  Users, 
+  Calendar, 
+  ArrowRight,
+  FileText,
+  User,
+  AlertCircle
+} from 'lucide-react';
+import { ActivityLog, ActionType } from '@/types/type';
+import { fetchRecentActivity } from '@/services/activityService';
 
 interface ActivityItem {
   id: string;
-  type: NotificationType;
-  title: string;
-  description: string;
+  action: ActionType;
+  message: string;
   timestamp: Date;
-  isRead: boolean;
+  userId: string;
+  userName: string;
+  projectId?: string;
+  taskId?: string;
+  boardId?: string;
 }
 
 const RecentActivity: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastPollTime, setLastPollTime] = useState<Date>(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  // Convert notifications to activity items
-  const convertToActivityItems = (notifications: Notification[]): ActivityItem[] => {
-    if (!notifications || notifications.length === 0) return [];
-    return notifications.map(notification => ({
-      id: notification.id,
-      type: notification.type,
-      title: notification.title,
-      description: notification.message,
-      timestamp: new Date(notification.createdAt),
-      isRead: notification.isRead
+  // Convert activity logs to activity items
+  const convertToActivityItems = (activityLogs: ActivityLog[]): ActivityItem[] => {
+    if (!activityLogs || activityLogs.length === 0) return [];
+    return activityLogs.map(log => ({
+      id: log.id,
+      action: log.action,
+      message: log.message,
+      timestamp: new Date(log.createdAt),
+      userId: log.userId,
+      userName: log.user?.name || 'Unknown User',
+      projectId: log.projectId,
+      taskId: log.taskId,
+      boardId: log.boardId
     }));
   };
 
-  // Initial load of notifications
-  const loadNotifications = useCallback(async () => {
+  // Load recent activity
+  const loadActivity = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchNotifications({limit: 5});
-      setNotifications(data.notifications);
-      setLastPollTime(new Date());
+      const data = await fetchRecentActivity(8); // Get 8 recent activities
+      
+      setActivities(data);
+      setLastUpdate(new Date());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load notifications');
-      console.error('Error loading notifications:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load activity');
+      console.error('Error loading activity:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Smart polling function
-  const pollForUpdates = useCallback(async () => {
+  // Refresh activity data
+  const refreshActivity = useCallback(async () => {
     try {
-      const { notifications: newNotifications } = await pollNotifications();
-      console.log('Polled notifications:', newNotifications); 
-      // Only update if we have new notifications
-      if (newNotifications.length > notifications.length) {
-        setNotifications(newNotifications);
-        setLastPollTime(new Date());
+      const data = await fetchRecentActivity(8);
+      // Only update if we have new or different data
+      if (data.length !== activities.length || 
+          (data.length > 0 && activities.length > 0 && 
+           new Date(data[0].createdAt) > new Date(activities[0].createdAt))) {
+        setActivities(data);
+        setLastUpdate(new Date());
       }
     } catch (err) {
-      console.error('Error polling for notifications:', err);
+      console.error('Error refreshing activity:', err);
     }
-  }, [notifications.length]);
+  }, [activities]);
 
   // Initial load
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    loadActivity();
+  }, [loadActivity]);
 
-  // Smart polling setup
+  // Auto-refresh setup
   useEffect(() => {
-    // Start with 30 second intervals
-    let pollInterval = 30000;
-    
-    const setupPolling = () => {
-      const interval = setInterval(() => {
-        pollForUpdates();
-        
-        // Gradually increase polling interval if no new activity
-        const timeSinceLastUpdate = Date.now() - lastPollTime.getTime();
-        if (timeSinceLastUpdate > 5 * 60 * 1000) { // 5 minutes
-          pollInterval = Math.min(pollInterval * 1.5, 5 * 60 * 1000); // Max 5 minutes
-        }
-      }, pollInterval);
+    // Refresh every 2 minutes
+    const interval = setInterval(() => {
+      refreshActivity();
+    }, 2 * 60 * 1000);
 
-      return interval;
-    };
-
-    const interval = setupPolling();
-
-    // Reset polling interval when user becomes active
+    // Refresh when user becomes active
     const handleUserActivity = () => {
-      pollInterval = 30000; // Reset to 30 seconds
-      pollForUpdates();
+      refreshActivity();
     };
 
     window.addEventListener('focus', handleUserActivity);
-    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        refreshActivity();
+      }
+    });
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleUserActivity);
-      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('visibilitychange', handleUserActivity);
     };
-  }, [pollForUpdates, lastPollTime]);
+  }, [refreshActivity]);
 
-  const activities = convertToActivityItems(notifications).slice(0, 5); // Show only 5 activities
+  const activityItems = convertToActivityItems(activities).slice(0, 6); // Show only 6 activities
 
-  const getActivityIcon = (type: NotificationType) => {
-    switch (type) {
-      case NotificationType.TASK_COMPLETED:
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case NotificationType.TASK_ASSIGNED:
-      case NotificationType.TASK_UPDATED:
-        return <Clock className="w-4 h-4 text-blue-500" />;
-      case NotificationType.PROJECT_MEMBER_ADDED:
-        return <UserPlus className="w-4 h-4 text-purple-500" />;
-      case NotificationType.BOARD_CREATED:
-        return <FolderPlus className="w-4 h-4 text-orange-500" />;
-      case NotificationType.BOARD_UPDATED:
-        return <Calendar className="w-4 h-4 text-yellow-500" />;
-      case NotificationType.BOARD_DELETED:
+  const getActivityIcon = (action: ActionType) => {
+    switch (action) {
+      case ActionType.TASK_CREATED:
+        return <FileText className="w-4 h-4 text-green-500" />;
+      case ActionType.TASK_UPDATED:
+        return <Edit3 className="w-4 h-4 text-orange-500" />;
+      case ActionType.TASK_DELETED:
         return <Trash2 className="w-4 h-4 text-red-500" />;
-      case NotificationType.PROJECT_MEMBER_REMOVED:
+      case ActionType.TASK_COMPLETED:
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case ActionType.TASK_ASSIGNED:
+        return <UserPlus className="w-4 h-4 text-indigo-500" />;
+      case ActionType.TASK_UNASSIGNED:
         return <Users className="w-4 h-4 text-gray-500" />;
-      case NotificationType.TASK_UNASSIGNED:
-        return <Bell className="w-4 h-4 text-gray-500" />;
+      case ActionType.BOARD_CREATED:
+        return <Calendar className="w-4 h-4 text-purple-500" />;
+      case ActionType.BOARD_UPDATED:
+        return <Edit3 className="w-4 h-4 text-orange-500" />;
+      case ActionType.BOARD_DELETED:
+        return <Trash2 className="w-4 h-4 text-red-500" />;
+      case ActionType.PROJECT_CREATED:
+        return <FolderPlus className="w-4 h-4 text-blue-500" />;
+      case ActionType.PROJECT_UPDATED:
+        return <Edit3 className="w-4 h-4 text-orange-500" />;
+      case ActionType.PROJECT_MEMBER_ADDED:
+        return <UserPlus className="w-4 h-4 text-purple-500" />;
+      case ActionType.PROJECT_MEMBER_REMOVED:
+        return <Users className="w-4 h-4 text-gray-500" />;
+      case ActionType.COMMENT_ADDED:
+        return <FileText className="w-4 h-4 text-blue-400" />;
       default:
-        return <Clock className="w-4 h-4 text-gray-500" />;
+        return <AlertCircle className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getActionColor = (action: ActionType) => {
+    switch (action) {
+      case ActionType.TASK_CREATED:
+      case ActionType.BOARD_CREATED:
+      case ActionType.PROJECT_CREATED:
+      case ActionType.PROJECT_MEMBER_ADDED:
+        return 'bg-green-100 text-green-800';
+      case ActionType.TASK_UPDATED:
+      case ActionType.BOARD_UPDATED:
+      case ActionType.PROJECT_UPDATED:
+        return 'bg-orange-100 text-orange-800';
+      case ActionType.TASK_DELETED:
+      case ActionType.BOARD_DELETED:
+      case ActionType.PROJECT_MEMBER_REMOVED:
+        return 'bg-red-100 text-red-800';
+      case ActionType.TASK_COMPLETED:
+        return 'bg-green-100 text-green-800';
+      case ActionType.TASK_ASSIGNED:
+        return 'bg-indigo-100 text-indigo-800';
+      case ActionType.TASK_UNASSIGNED:
+        return 'bg-gray-100 text-gray-800';
+      case ActionType.COMMENT_ADDED:
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -153,7 +202,7 @@ const RecentActivity: React.FC = () => {
 
   return (
     <SectionCard title="Recent Activity" className="min-h-[300px]">
-      <div className="space-y-4">
+      <div className="space-y-3">
         {loading ? (
           <div className="text-center text-gray-400 text-sm pt-8">
             Loading activity...
@@ -162,50 +211,46 @@ const RecentActivity: React.FC = () => {
           <div className="text-center text-red-400 text-sm pt-8">
             {error}
           </div>
-        ) : activities.length > 0 ? (
+        ) : activityItems.length > 0 ? (
           <>
-            {activities.map((activity) => (
+            {activityItems.map((activity) => (
               <div 
                 key={activity.id} 
-                className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
-                  activity.isRead ? 'bg-gray-50' : 'bg-blue-50 border-l-2 border-blue-400'
-                }`}
+                className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border-l-2 border-transparent hover:border-blue-200"
               >
                 <div className="flex-shrink-0 mt-1">
-                  {getActivityIcon(activity.type)}
+                  {getActivityIcon(activity.action)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className={`text-sm font-medium ${
-                      activity.isRead ? 'text-gray-900' : 'text-blue-900'
-                    }`}>
-                      {activity.title}
-                    </p>
-                    <p className="text-xs text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        {activity.userName}
+                      </p>
+                    </div>
+                    <p className="text-xs text-gray-500 flex-shrink-0">
                       {formatTimeAgo(activity.timestamp)}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {activity.description}
+                  <p className="text-sm text-gray-700 mt-1 leading-relaxed">
+                    {activity.message}
                   </p>
-                  {!activity.isRead && (
-                    <div className="mt-2">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        New
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getActionColor(activity.action)}`}>
+                      {activity.action.replace('_', ' ').toLowerCase()}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
             
-            {/* Read More Link */}
+            {/* View More Link */}
             <div className="pt-4 border-t border-gray-100">
               <Link 
-                href="/notifications" 
+                href="/activity" 
                 className="flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
               >
-                View all notifications
+                View all activity
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

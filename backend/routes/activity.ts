@@ -244,8 +244,9 @@ router.get('/recent',
 
     try {
       const { limit = 20 } = req.query
-
+    
       const logs = await activityLogService.getRecentActivityForUser(user.id, Number(limit))
+      
 
       // Enhance logs with diff details
       const enhancedLogs = logs.map(log => ({

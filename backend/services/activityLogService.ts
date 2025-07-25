@@ -571,34 +571,11 @@ class ActivityLogService {
   // Get recent activity across all projects for a user (dashboard view)
   async getRecentActivityForUser(userId: string, limit: number = 20) {
     try {
-      // Get projects the user is a member of or owns
-      const userProjects = await prisma.projectMember.findMany({
-        where: { userId },
-        select: { projectId: true }
-      })
-
-      const ownedProjects = await prisma.project.findMany({
-        where: { ownerId: userId },
-        select: { id: true }
-      })
-
-      const allProjectIds = [
-        ...userProjects.map(p => p.projectId),
-        ...ownedProjects.map(p => p.id)
-      ]
-
-      const uniqueProjectIds = [...new Set(allProjectIds)]
-
-      if (uniqueProjectIds.length === 0) {
-        return []
-      }
-
+      // Simply get all activity logs for the user - this includes both:
+      // 1. Activities the user performed (userId field)
+      // 2. All project/task activities they should see based on the relationship
       const logs = await prisma.activityLog.findMany({
-        where: {
-          projectId: {
-            in: uniqueProjectIds
-          }
-        },
+        where: { userId },
         include: {
           user: {
             select: {

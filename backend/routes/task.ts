@@ -4,6 +4,7 @@ import prisma from "../models/prismaClient"
 import passport from "passport"
 import { User } from "@prisma/client"
 import notificationService from "../services/notificationService"
+import activityLogService from "../services/activityLogService"
 
 const router = express.Router()
 
@@ -150,6 +151,15 @@ router.post("/create",
             // Send notification about task creation
             await notificationService.notifyTaskCreated(newTask.id, user.id, projectId);
             
+            // Log task creation activity
+            await activityLogService.logTaskCreated(
+                user.id,
+                newTask.id,
+                newTask.title,
+                projectId,
+                boardId
+            );
+            
             res.status(200).json(newTask)
         } catch (error) {
             console.error(error)
@@ -226,6 +236,16 @@ router.post("/assign",
             // Send notification
             await notificationService.notifyTaskAssigned(taskId, userId, user.id)
 
+            // Log task assignment activity
+            await activityLogService.logTaskAssigned(
+                user.id,
+                taskId,
+                task.title,
+                userToBeAssigned.name,
+                task.projectId || undefined,
+                task.boardId || undefined
+            );
+
             res.status(200).json(updatedTask)
         } catch (error) {
             console.error(error)
@@ -293,6 +313,18 @@ router.post("/unassign",
                 await notificationService.notifyTaskUnassigned(taskId, task.assignedToId, user.id)
             }
 
+            // Log task unassignment activity
+            if (task.assignedTo) {
+                await activityLogService.logTaskUnassigned(
+                    user.id,
+                    taskId,
+                    task.title,
+                    task.assignedTo.name,
+                    task.projectId || undefined,
+                    task.boardId || undefined
+                );
+            }
+
             res.status(200).json(updatedTask)
         } catch (error) {
             console.error(error)
@@ -353,7 +385,16 @@ router.put("/update",
             // Get the original task for comparison
             const originalTask = await prisma.task.findUnique({
                 where: { id },
-                select: { title: true, description: true, status: true, dueDate: true, priority: true }
+                select: { 
+                    title: true, 
+                    description: true, 
+                    status: true, 
+                    dueDate: true, 
+                    priority: true,
+                    assignedToId: true,
+                    boardId: true,
+                    projectId: true
+                }
             })
 
             const task = await prisma.task.update({
@@ -379,9 +420,38 @@ router.put("/update",
                     // Special notification for task completion
                     if (originalTask.status !== "DONE" && (status === "DONE")) {
                         await notificationService.notifyTaskCompleted(id, user.id)
+                        
+                        // Log task completion activity
+                        await activityLogService.logTaskCompleted(
+                            user.id,
+                            id,
+                            title,
+                            originalTask.projectId || undefined,
+                            originalTask.boardId || undefined
+                        );
                     } else {
                         await notificationService.notifyTaskUpdated(id, user.id, changes)
                     }
+
+                    // Log task update activity with diff data
+                    const newTaskData = {
+                        title,
+                        description,
+                        status: status || "TODO",
+                        dueDate: dueDate ? new Date(dueDate) : null,
+                        priority: priority || "LOW",
+                        assignedToId: originalTask.assignedToId,
+                        boardId: originalTask.boardId
+                    };
+
+                    await activityLogService.logTaskUpdated(
+                        user.id,
+                        id,
+                        originalTask,
+                        newTaskData,
+                        originalTask.projectId || undefined,
+                        originalTask.boardId || undefined
+                    );
                 }
             }
 
@@ -415,7 +485,7 @@ router.delete("/delete/:id",
                     include: { projectMemberships: true }
                 },
                 assignedTo: { select: { id: true, name: true } },
-                board: { select: { name: true } }
+                board: { select: { id: true, name: true } }
             }
         })
 
@@ -445,6 +515,14 @@ router.delete("/delete/:id",
                 taskToDelete.assignedTo?.id,
                 user.id
             )
+
+            // Log task deletion activity
+            await activityLogService.logTaskDeleted(
+                user.id,
+                taskToDelete.title,
+                taskToDelete.project?.id,
+                taskToDelete.board?.id // Pass the actual boardId if task was in a board
+            );
 
             res.status(200).json(task)
         } catch (error) {
