@@ -130,6 +130,7 @@ class NotificationService {
 
     if (!task || !task.assignedTo) return
 
+    // Only notify the assigned user
     await this.createNotification(assignedUserId, {
       type: "TASK_ASSIGNED",
       title: "Task Assigned",
@@ -137,17 +138,6 @@ class NotificationService {
       projectId: task.projectId || undefined,
       taskId: task.id,
     })
-
-    // Notify other project members
-    if (task.projectId) {
-      await this.notifyProjectMembers(task.projectId, {
-        type: "TASK_ASSIGNED",
-        title: "Task Assignment Update",
-        message: `${task.assignedTo.name} was assigned to task: ${task.title}`,
-        projectId: task.projectId,
-        taskId: task.id,
-      }, assignedUserId) // Exclude the assigned user
-    }
   }
 
   async notifyTaskUnassigned(taskId: string, previousAssigneeId: string, unassignedByUserId: string) {
@@ -180,7 +170,7 @@ class NotificationService {
 
     const changeText = changes.join(", ")
     
-    // Notify assigned user if different from updater
+    // Only notify assigned user if task is assigned and they're different from updater
     if (task.assignedTo && task.assignedTo.id !== updatedByUserId) {
       await this.createNotification(task.assignedTo.id, {
         type: "TASK_UPDATED",
@@ -190,17 +180,8 @@ class NotificationService {
         taskId: task.id,
       })
     }
-
-    // Notify project members
-    if (task.projectId) {
-      await this.notifyProjectMembers(task.projectId, {
-        type: "TASK_UPDATED",
-        title: "Task Updated",
-        message: `Task "${task.title}" was updated: ${changeText}`,
-        projectId: task.projectId,
-        taskId: task.id,
-      }, updatedByUserId)
-    }
+    
+    // Don't notify project members - only the assigned person needs to know
   }
 
   // Board-related notifications
@@ -279,27 +260,28 @@ class NotificationService {
       })
     }
 
-    // Notify project members
-    if (task.projectId) {
-      await this.notifyProjectMembers(task.projectId, {
-        type: "TASK_UPDATED",
-        title: "Task Moved",
-        message: `Task "${task.title}" was moved to board "${task.board.name}"`,
-        projectId: task.projectId,
-        taskId: task.id,
-        boardId: task.boardId || undefined,
-      }, movedByUserId)
-    }
+    
   }
 
   async notifyTaskRemovedFromBoard(taskId: string, taskTitle: string, boardName: string, projectId: string, removedByUserId: string) {
-    await this.notifyProjectMembers(projectId, {
-      type: "TASK_UPDATED",
-      title: "Task Removed from Board",
-      message: `Task "${taskTitle}" was removed from board "${boardName}"`,
-      projectId: projectId,
-      taskId: taskId,
-    }, removedByUserId)
+    // Get task details to find the assigned user
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      include: { 
+        assignedTo: { select: { id: true, name: true } }
+      }
+    })
+
+    // Only notify the assigned user if task is assigned and they're different from who removed it
+    if (task?.assignedTo && task.assignedTo.id !== removedByUserId) {
+      await this.createNotification(task.assignedTo.id, {
+        type: "TASK_UPDATED",
+        title: "Task Removed from Board",
+        message: `Your task "${taskTitle}" was removed from board "${boardName}"`,
+        projectId: projectId,
+        taskId: taskId,
+      })
+    }
   }
 
   async notifyTaskDeleted(taskTitle: string, projectId?: string, assignedUserId?: string, deletedByUserId?: string) {
@@ -313,15 +295,7 @@ class NotificationService {
       })
     }
 
-    // Notify project members
-    if (projectId) {
-      await this.notifyProjectMembers(projectId, {
-        type: "TASK_DELETED",
-        title: "Task Deleted",
-        message: `Task "${taskTitle}" was deleted`,
-        projectId: projectId,
-      }, deletedByUserId)
-    }
+    
   }
 
   async notifyTaskCompleted(taskId: string, completedByUserId: string) {

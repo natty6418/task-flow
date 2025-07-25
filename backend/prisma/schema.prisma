@@ -39,7 +39,24 @@ model User {
   updatedAt      DateTime  @updatedAt
   projectMemberships ProjectMember[]
   notifications  Notification[] 
+  profile       UserProfile?
+  activityLogs  ActivityLog[]
 }
+model UserProfile {
+  id        String @id @default(uuid())
+  userId    String @unique
+  bio       String?
+  avatarUrl String?
+  user      User   @relation(fields: [userId], references: [id])
+  jobTitle  String?
+  location  String?
+  company   String?
+  phone     String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 
 model Project {
   id          String   @id @default(uuid())
@@ -58,6 +75,7 @@ model Project {
 
   projectMemberships ProjectMember[]
   notifications      Notification[]
+  activityLogs       ActivityLog[] 
 }
 
 model Board {
@@ -72,6 +90,7 @@ model Board {
 
   project     Project  @relation(fields: [projectId], references: [id])
   notifications Notification[]
+  activityLogs ActivityLog[]
 }
 
 model Task {
@@ -91,6 +110,7 @@ model Task {
   
   board        Board?   @relation(fields: [boardId], references: [id])
   notifications Notification[]
+  activityLogs  ActivityLog[]
 }
 
 model Notification {
@@ -110,6 +130,43 @@ model Notification {
   task        Task?    @relation(fields: [taskId], references: [id])
   board       Board?   @relation(fields: [boardId], references: [id])
 }
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String   // Who performed the action
+  projectId   String?  // Project context (if any)
+  boardId     String?  // Board context (if any)
+  taskId      String?  // Task context (if any)
+  action      ActionType
+  message     String   // Human-readable description
+  diffData    Json?    // Structured diff data showing what changed
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  project     Project? @relation(fields: [projectId], references: [id])
+  board       Board?   @relation(fields: [boardId], references: [id])
+  task        Task?    @relation(fields: [taskId], references: [id])
+}
+
+enum ActionType {
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_DELETED
+  TASK_ASSIGNED
+  TASK_UNASSIGNED
+  TASK_COMPLETED
+
+  BOARD_CREATED
+  BOARD_UPDATED
+  BOARD_DELETED
+
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_MEMBER_ADDED
+  PROJECT_MEMBER_REMOVED
+
+}
+
 
 enum Role {
   ADMIN

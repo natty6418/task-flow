@@ -164,7 +164,7 @@ const BoardColumn: React.FC<BoardColumnProps> = React.memo(({
   return (
     <div
       ref={setNodeRef}
-      className={`bg-white/70 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 min-h-[500px] relative ${
+      className={`bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-500 min-h-[500px] relative ${
         isOver ? 'ring-2 ring-blue-400 ring-opacity-50 bg-blue-50/70' : ''
       } ${isLoading ? 'pointer-events-none' : ''}`}
     >

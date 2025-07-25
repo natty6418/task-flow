@@ -339,10 +339,21 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   }
 
   return (
-    <div className=" bg-gradient-to-br from-slate-50 to-gray-100 p-6 ">
-      {/* Modern Header */}
-      {/* Kanban Columns */}
-      <div className="overflow-x-auto pb-1 scrollbar-hide">
+    <div className="bg-gradient-to-br from-slate-50 to-gray-100 p-6 relative">
+      {/* Dot Grid Background */}
+      <div 
+        className="absolute inset-0 opacity-25 pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle, rgba(71, 85, 105, 0.6) 1px, transparent 1px)`,
+          backgroundSize: '20px 20px'
+        }}
+      />
+      
+      {/* Content Container */}
+      <div className="relative z-10">
+        {/* Modern Header */}
+        {/* Kanban Columns */}
+        <div className="overflow-x-auto pb-1 scrollbar-hide">
         <DndContext
           collisionDetection={closestCorners}
           sensors={sensors}
@@ -418,6 +429,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           </DragOverlay>
           {activeTask && <DeleteZone />}
         </DndContext>
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import task from "./routes/task";
 import board from "./routes/board";
 import session from 'express-session';
 import notificationRoutes from "./routes/notification"
+import activityRoutes from "./routes/activity"
 
 
 dotenv.config();
@@ -56,6 +57,7 @@ app.use('/project', project);
 app.use('/task', task);
 app.use('/board', board);
 app.use("/notification", notificationRoutes)
+app.use("/activity", activityRoutes)
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error("Global error handler caught:", err);
