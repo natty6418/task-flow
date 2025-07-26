@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Layout, CheckSquare } from "lucide-react";
+import { Layout, CheckSquare, Clock } from "lucide-react";
 import { Task, Board, ProjectMember} from "@/types/type";
 import ProjectBoardsSection from "./ProjectBoardsSection";
 import ProjectTasksSection from "./ProjectTasksSection";
-
+import ProjectActivitySection from "./ProjectActivitySection";
 interface ProjectMainContentProps {
   projectId: string;
   boards: Board[];
@@ -37,7 +37,7 @@ export default function ProjectMainContent({
   updatingTasks,
   members,
 }: ProjectMainContentProps) {
-  const [activeTab, setActiveTab] = useState<"boards" | "tasks">("tasks");
+  const [activeTab, setActiveTab] = useState<"boards" | "tasks" | "activity">("tasks");
 
   return (
     <div className="space-y-6">
@@ -73,6 +73,17 @@ export default function ProjectMainContent({
                 {tasks.length}
               </span>
             </button>
+            <button
+              onClick={() => setActiveTab("activity")}
+              className={`flex items-center gap-2 px-6 py-4 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === "activity"
+                  ? "border-blue-500 text-blue-600 bg-blue-50"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              Activity
+            </button>
           </nav>
         </div>
       </div>
@@ -94,7 +105,7 @@ export default function ProjectMainContent({
             handleRemoveTask={handleRemoveTask}
             updatingTasks={updatingTasks}
           />
-        ) : (
+        ) : activeTab === "tasks" ? (
           <ProjectTasksSection
             tasks={tasks}
            
@@ -103,6 +114,10 @@ export default function ProjectMainContent({
             handleRemoveTask={handleRemoveTask}
             updatingTasks={updatingTasks}
             members={members}
+          />
+        ) : (
+          <ProjectActivitySection
+            projectId={projectId}
           />
         )}
       </div>

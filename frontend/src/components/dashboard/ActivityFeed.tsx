@@ -58,8 +58,8 @@ const RecentActivity: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchRecentActivity(8); // Get 8 recent activities
-      
+      const data = await fetchRecentActivity(5); // Get 5 recent activities
+
       setActivities(data);
       setLastUpdate(new Date());
     } catch (err) {

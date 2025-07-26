@@ -1,6 +1,17 @@
 import prisma from "../models/prismaClient"
 import { ActionType } from "@prisma/client"
 import * as diff from 'diff'
+import { 
+  DiffData, 
+  FieldChange, 
+  TextDiffPart, 
+  TaskDiffChanges, 
+  BoardDiffChanges, 
+  ProjectDiffChanges,
+  DiffDetails,
+  ProcessedChanges,
+  CreateDiffDataInput
+} from '../types/activityLog'
 
 interface ActivityLogData {
   action: ActionType
@@ -8,28 +19,7 @@ interface ActivityLogData {
   projectId?: string
   boardId?: string
   taskId?: string
-  diffData?: any // JSON object containing the diff data
-}
-
-interface TaskDiffData {
-  title?: { old: string, new: string }
-  description?: { old: string | null, new: string | null }
-  status?: { old: string, new: string }
-  priority?: { old: string, new: string }
-  dueDate?: { old: Date | null, new: Date | null }
-  assignedTo?: { old: string | null, new: string | null }
-  boardId?: { old: string | null, new: string | null }
-}
-
-interface BoardDiffData {
-  name?: { old: string, new: string }
-  description?: { old: string | null, new: string | null }
-  status?: { old: string, new: string }
-}
-
-interface ProjectDiffData {
-  name?: { old: string, new: string }
-  description?: { old: string | null, new: string | null }
+  diffData?: DiffData
 }
 
 class ActivityLogService {
@@ -38,26 +28,125 @@ class ActivityLogService {
     const changesList: string[] = []
     
     for (const [field, change] of Object.entries(changes)) {
-      const oldValue = change.old ?? 'null'
-      const newValue = change.new ?? 'null'
+      const oldValue = change.old ?? null
+      const newValue = change.new ?? null
       
-      if (field === 'dueDate') {
-        const oldDate = change.old ? new Date(change.old).toLocaleDateString() : 'No due date'
-        const newDate = change.new ? new Date(change.new).toLocaleDateString() : 'No due date'
-        changesList.push(`${field}: ${oldDate} → ${newDate}`)
-      } else if (field === 'assignedTo') {
-        changesList.push(`${field}: ${oldValue || 'Unassigned'} → ${newValue || 'Unassigned'}`)
-      } else if (typeof oldValue === 'string' && typeof newValue === 'string' && 
-                 (oldValue.length > 50 || newValue.length > 50)) {
-        // For long text fields, show a more compact diff
-        const textDiff = diff.diffWords(oldValue, newValue)
-        const diffSummary = textDiff
-          .filter(part => part.added || part.removed)
-          .map(part => part.added ? `+${part.value}` : `-${part.value}`)
-          .join(' ')
-        changesList.push(`${field}: ${diffSummary || 'text modified'}`)
-      } else {
-        changesList.push(`${field}: ${oldValue} → ${newValue}`)
+      // Generate descriptive messages based on field type
+      switch (field) {
+        case 'title':
+          if (oldValue && newValue) {
+            changesList.push(`renamed from "${oldValue}" to "${newValue}"`)
+          } else if (newValue) {
+            changesList.push(`set title to "${newValue}"`)
+          }
+          break
+          
+        case 'description':
+          if (oldValue && newValue) {
+            if (oldValue.length > 50 || newValue.length > 50) {
+              changesList.push('updated description')
+            } else {
+              changesList.push(`changed description from "${oldValue}" to "${newValue}"`)
+            }
+          } else if (newValue) {
+            changesList.push('added description')
+          } else if (oldValue) {
+            changesList.push('removed description')
+          }
+          break
+          
+        case 'status':
+          const statusMap: Record<string, string> = {
+            'TODO': 'To Do',
+            'IN_PROGRESS': 'In Progress', 
+            'DONE': 'Done',
+            'CANCELLED': 'Cancelled',
+            'BLOCKED': 'Blocked'
+          }
+          const oldStatus = statusMap[oldValue] || oldValue
+          const newStatus = statusMap[newValue] || newValue
+          changesList.push(`changed status from ${oldStatus} to ${newStatus}`)
+          break
+          
+        case 'priority':
+          const priorityMap: Record<string, string> = {
+            'LOW': 'Low',
+            'MEDIUM': 'Medium',
+            'HIGH': 'High',
+            'URGENT': 'Urgent'
+          }
+          const oldPriority = priorityMap[oldValue] || oldValue
+          const newPriority = priorityMap[newValue] || newValue
+          changesList.push(`changed priority from ${oldPriority} to ${newPriority}`)
+          break
+          
+        case 'dueDate':
+          if (oldValue && newValue) {
+            const oldDate = new Date(oldValue).toLocaleDateString()
+            const newDate = new Date(newValue).toLocaleDateString()
+            changesList.push(`changed due date from ${oldDate} to ${newDate}`)
+          } else if (newValue) {
+            const newDate = new Date(newValue).toLocaleDateString()
+            changesList.push(`set due date to ${newDate}`)
+          } else if (oldValue) {
+            changesList.push('removed due date')
+          }
+          break
+          
+        case 'assignedTo':
+          if (oldValue && newValue) {
+            changesList.push(`reassigned from ${oldValue} to ${newValue}`)
+          } else if (newValue) {
+            changesList.push(`assigned to ${newValue}`)
+          } else if (oldValue) {
+            changesList.push(`unassigned from ${oldValue}`)
+          }
+          break
+          
+        case 'board':
+          if (oldValue && newValue) {
+            changesList.push(`moved from "${oldValue}" board to "${newValue}" board`)
+          } else if (newValue) {
+            changesList.push(`moved to "${newValue}" board`)
+          } else if (oldValue) {
+            changesList.push(`removed from "${oldValue}" board`)
+          }
+          break
+          
+        case 'name':
+          if (oldValue && newValue) {
+            changesList.push(`renamed from "${oldValue}" to "${newValue}"`)
+          } else if (newValue) {
+            changesList.push(`set name to "${newValue}"`)
+          }
+          break
+          
+        default:
+          // Handle unknown fields with basic formatting
+          if (typeof oldValue === 'string' && typeof newValue === 'string' && 
+              (oldValue.length > 50 || newValue.length > 50)) {
+            // For long text fields, show a more compact diff
+            const textDiff = diff.diffWords(oldValue, newValue)
+            const addedWords = textDiff.filter(part => part.added).length
+            const removedWords = textDiff.filter(part => part.removed).length
+            
+            if (addedWords > 0 && removedWords > 0) {
+              changesList.push(`modified ${field} (${addedWords} additions, ${removedWords} deletions)`)
+            } else if (addedWords > 0) {
+              changesList.push(`added content to ${field}`)
+            } else if (removedWords > 0) {
+              changesList.push(`removed content from ${field}`)
+            } else {
+              changesList.push(`updated ${field}`)
+            }
+          } else if (oldValue && newValue) {
+            changesList.push(`changed ${field} from "${oldValue}" to "${newValue}"`)
+          } else if (newValue) {
+            changesList.push(`set ${field} to "${newValue}"`)
+          } else if (oldValue) {
+            changesList.push(`removed ${field}`)
+          }
+          break
       }
     }
     
@@ -65,9 +154,9 @@ class ActivityLogService {
   }
 
   // Utility function to create structured diff data
-  private createDiffData(changes: Record<string, { old: any, new: any }>): any {
-    const diffData: any = {
-      changes: {},
+  private createDiffData(changes: CreateDiffDataInput): DiffData {
+    const diffData: DiffData = {
+      changes: {} as any,
       summary: {
         fieldsChanged: Object.keys(changes),
         changeCount: Object.keys(changes).length
@@ -75,7 +164,7 @@ class ActivityLogService {
     }
 
     for (const [field, change] of Object.entries(changes)) {
-      diffData.changes[field] = {
+      const fieldChange: FieldChange = {
         oldValue: change.old,
         newValue: change.new,
         type: this.getChangeType(change.old, change.new)
@@ -85,19 +174,21 @@ class ActivityLogService {
       if (typeof change.old === 'string' && typeof change.new === 'string' && 
           (change.old.length > 20 || change.new.length > 20)) {
         const textDiff = diff.diffWords(change.old, change.new)
-        diffData.changes[field].textDiff = textDiff.map(part => ({
+        fieldChange.textDiff = textDiff.map(part => ({
           value: part.value,
           added: part.added || false,
           removed: part.removed || false
         }))
       }
+
+      (diffData.changes as any)[field] = fieldChange
     }
 
     return diffData
   }
 
   // Determine the type of change
-  private getChangeType(oldValue: any, newValue: any): string {
+  private getChangeType(oldValue: any, newValue: any): 'added' | 'removed' | 'modified' {
     if (oldValue === null || oldValue === undefined) {
       return 'added'
     } else if (newValue === null || newValue === undefined) {
@@ -106,8 +197,8 @@ class ActivityLogService {
       return 'modified'
     }
   }
-  private detectChanges<T extends Record<string, any>>(oldObj: T, newObj: T, fields: (keyof T)[]): Record<string, { old: any, new: any }> {
-    const changes: Record<string, { old: any, new: any }> = {}
+  private detectChanges<T extends Record<string, any>>(oldObj: T, newObj: T, fields: (keyof T)[]): CreateDiffDataInput {
+    const changes: CreateDiffDataInput = {}
     
     for (const field of fields) {
       const oldValue = oldObj[field]
@@ -401,9 +492,74 @@ class ActivityLogService {
     
     const diffMessage = this.generateDiffMessage(displayChanges)
     
+    // Create more specific action messages based on what changed
+    let actionMessage = `Updated task "${newTask.title}"`
+    const changeCount = Object.keys(changes).length
+    
+    if (changeCount === 1) {
+      // Single change - be more specific
+      const singleChange = Object.keys(changes)[0]
+      switch (singleChange) {
+        case 'status':
+          actionMessage = `Changed status of task "${newTask.title}"`
+          break
+        case 'assignedToId':
+          if (changes.assignedToId.old && changes.assignedToId.new) {
+            actionMessage = `Reassigned task "${newTask.title}"`
+          } else if (changes.assignedToId.new) {
+            actionMessage = `Assigned task "${newTask.title}"`
+          } else {
+            actionMessage = `Unassigned task "${newTask.title}"`
+          }
+          break
+        case 'priority':
+          actionMessage = `Changed priority of task "${newTask.title}"`
+          break
+        case 'dueDate':
+          if (changes.dueDate.old && changes.dueDate.new) {
+            actionMessage = `Changed due date of task "${newTask.title}"`
+          } else if (changes.dueDate.new) {
+            actionMessage = `Set due date for task "${newTask.title}"`
+          } else {
+            actionMessage = `Removed due date from task "${newTask.title}"`
+          }
+          break
+        case 'boardId':
+          actionMessage = `Moved task "${newTask.title}"`
+          break
+        case 'title':
+          actionMessage = `Renamed task`
+          break
+        case 'description':
+          if (changes.description.old && changes.description.new) {
+            actionMessage = `Updated description of task "${newTask.title}"`
+          } else if (changes.description.new) {
+            actionMessage = `Added description to task "${newTask.title}"`
+          } else {
+            actionMessage = `Removed description from task "${newTask.title}"`
+          }
+          break
+        default:
+          actionMessage = `Updated task "${newTask.title}"`
+      }
+    } else if (changeCount <= 3) {
+      // Multiple changes but not too many - be descriptive
+      const changeTypes = Object.keys(changes)
+      if (changeTypes.includes('status') && changeTypes.includes('assignedToId')) {
+        actionMessage = `Updated status and assignment of task "${newTask.title}"`
+      } else if (changeTypes.includes('priority') && changeTypes.includes('dueDate')) {
+        actionMessage = `Updated priority and due date of task "${newTask.title}"`
+      } else {
+        actionMessage = `Updated multiple fields of task "${newTask.title}"`
+      }
+    } else {
+      // Many changes
+      actionMessage = `Made ${changeCount} changes to task "${newTask.title}"`
+    }
+    
     return this.logActivity(userId, {
       action: ActionType.TASK_UPDATED,
-      message: `Updated task "${newTask.title}": ${diffMessage}`,
+      message: `${actionMessage}: ${diffMessage}`,
       projectId,
       boardId,
       taskId,
@@ -471,9 +627,36 @@ class ActivityLogService {
     const diffData = this.createDiffData(changes)
     const diffMessage = this.generateDiffMessage(changes)
     
+    // Create more specific message based on what changed
+    let actionMessage = `Updated board "${newBoard.name}"`
+    const changeCount = Object.keys(changes).length
+    
+    if (changeCount === 1) {
+      const singleChange = Object.keys(changes)[0]
+      switch (singleChange) {
+        case 'name':
+          actionMessage = `Renamed board from "${oldBoard.name}" to "${newBoard.name}"`
+          break
+        case 'description':
+          if (changes.description.old && changes.description.new) {
+            actionMessage = `Updated description of board "${newBoard.name}"`
+          } else if (changes.description.new) {
+            actionMessage = `Added description to board "${newBoard.name}"`
+          } else {
+            actionMessage = `Removed description from board "${newBoard.name}"`
+          }
+          break
+        case 'status':
+          actionMessage = `Changed status of board "${newBoard.name}"`
+          break
+        default:
+          actionMessage = `Updated board "${newBoard.name}"`
+      }
+    }
+    
     return this.logActivity(userId, {
       action: ActionType.BOARD_UPDATED,
-      message: `Updated board "${newBoard.name}": ${diffMessage}`,
+      message: changeCount === 1 && Object.keys(changes)[0] === 'name' ? actionMessage : `${actionMessage}: ${diffMessage}`,
       projectId,
       boardId,
       diffData
@@ -508,9 +691,33 @@ class ActivityLogService {
     const diffData = this.createDiffData(changes)
     const diffMessage = this.generateDiffMessage(changes)
     
+    // Create more specific message based on what changed
+    let actionMessage = `Updated project "${newProject.name}"`
+    const changeCount = Object.keys(changes).length
+    
+    if (changeCount === 1) {
+      const singleChange = Object.keys(changes)[0]
+      switch (singleChange) {
+        case 'name':
+          actionMessage = `Renamed project from "${oldProject.name}" to "${newProject.name}"`
+          break
+        case 'description':
+          if (changes.description.old && changes.description.new) {
+            actionMessage = `Updated description of project "${newProject.name}"`
+          } else if (changes.description.new) {
+            actionMessage = `Added description to project "${newProject.name}"`
+          } else {
+            actionMessage = `Removed description from project "${newProject.name}"`
+          }
+          break
+        default:
+          actionMessage = `Updated project "${newProject.name}"`
+      }
+    }
+    
     return this.logActivity(userId, {
       action: ActionType.PROJECT_UPDATED,
-      message: `Updated project "${newProject.name}": ${diffMessage}`,
+      message: changeCount === 1 && Object.keys(changes)[0] === 'name' ? actionMessage : `${actionMessage}: ${diffMessage}`,
       projectId,
       diffData
     })
@@ -519,7 +726,7 @@ class ActivityLogService {
   async logProjectMemberAdded(userId: string, projectId: string, projectName: string, memberName: string) {
     return this.logActivity(userId, {
       action: ActionType.PROJECT_MEMBER_ADDED,
-      message: `Added ${memberName} to project "${projectName}"`,
+      message: `Added ${memberName} as a member to project "${projectName}"`,
       projectId
     })
   }
@@ -534,9 +741,20 @@ class ActivityLogService {
 
   // Specific logging methods for common task changes
   async logTaskStatusChange(userId: string, taskId: string, taskTitle: string, oldStatus: string, newStatus: string, projectId?: string, boardId?: string) {
+    const statusMap: Record<string, string> = {
+      'TODO': 'To Do',
+      'IN_PROGRESS': 'In Progress', 
+      'DONE': 'Done',
+      'CANCELLED': 'Cancelled',
+      'BLOCKED': 'Blocked'
+    }
+    
+    const oldStatusDisplay = statusMap[oldStatus] || oldStatus
+    const newStatusDisplay = statusMap[newStatus] || newStatus
+    
     return this.logActivity(userId, {
       action: ActionType.TASK_UPDATED,
-      message: `Changed status of task "${taskTitle}": ${oldStatus} → ${newStatus}`,
+      message: `Changed status of task "${taskTitle}" from ${oldStatusDisplay} to ${newStatusDisplay}`,
       projectId,
       boardId,
       taskId
@@ -544,12 +762,23 @@ class ActivityLogService {
   }
 
   async logTaskAssignmentChange(userId: string, taskId: string, taskTitle: string, oldAssignee: string | null, newAssignee: string | null, projectId?: string, boardId?: string) {
-    const oldName = oldAssignee || 'Unassigned'
-    const newName = newAssignee || 'Unassigned'
+    let message: string
+    
+    if (oldAssignee && newAssignee) {
+      message = `Reassigned task "${taskTitle}" from ${oldAssignee} to ${newAssignee}`
+    } else if (newAssignee) {
+      message = `Assigned task "${taskTitle}" to ${newAssignee}`
+    } else if (oldAssignee) {
+      message = `Unassigned task "${taskTitle}" from ${oldAssignee}`
+    } else {
+      message = `Updated assignment for task "${taskTitle}"`
+    }
+    
+    const action = oldAssignee ? ActionType.TASK_UNASSIGNED : ActionType.TASK_ASSIGNED
     
     return this.logActivity(userId, {
-      action: oldAssignee ? ActionType.TASK_UNASSIGNED : ActionType.TASK_ASSIGNED,
-      message: `Changed assignment of task "${taskTitle}": ${oldName} → ${newName}`,
+      action,
+      message,
       projectId,
       boardId,
       taskId
@@ -557,12 +786,21 @@ class ActivityLogService {
   }
 
   async logTaskMoved(userId: string, taskId: string, taskTitle: string, oldBoardName: string | null, newBoardName: string | null, projectId?: string) {
-    const oldBoard = oldBoardName || 'No board'
-    const newBoard = newBoardName || 'No board'
+    let message: string
+    
+    if (oldBoardName && newBoardName) {
+      message = `Moved task "${taskTitle}" from "${oldBoardName}" board to "${newBoardName}" board`
+    } else if (newBoardName) {
+      message = `Moved task "${taskTitle}" to "${newBoardName}" board`
+    } else if (oldBoardName) {
+      message = `Removed task "${taskTitle}" from "${oldBoardName}" board`
+    } else {
+      message = `Updated board assignment for task "${taskTitle}"`
+    }
     
     return this.logActivity(userId, {
       action: ActionType.TASK_UPDATED,
-      message: `Moved task "${taskTitle}": ${oldBoard} → ${newBoard}`,
+      message,
       projectId,
       taskId
     })
@@ -623,20 +861,148 @@ class ActivityLogService {
       return 'No changes recorded'
     }
 
-    const changes = diffData.changes
+    const changes = diffData.changes as Record<string, FieldChange>
     const changesList: string[] = []
 
     for (const [field, change] of Object.entries(changes)) {
-      const changeData = change as { oldValue: any, newValue: any, type: string }
+      const oldValue = change.oldValue ?? null
+      const newValue = change.newValue ?? null
       
-      if (field === 'dueDate') {
-        const oldDate = changeData.oldValue ? new Date(changeData.oldValue).toLocaleDateString() : 'No due date'
-        const newDate = changeData.newValue ? new Date(changeData.newValue).toLocaleDateString() : 'No due date'
-        changesList.push(`${field}: ${oldDate} → ${newDate}`)
-      } else {
-        const oldValue = changeData.oldValue ?? 'null'
-        const newValue = changeData.newValue ?? 'null'
-        changesList.push(`${field}: ${oldValue} → ${newValue}`)
+      // Use the same descriptive logic as generateDiffMessage
+      switch (field) {
+        case 'title':
+          if (oldValue && newValue) {
+            changesList.push(`renamed from "${oldValue}" to "${newValue}"`)
+          } else if (newValue) {
+            changesList.push(`set title to "${newValue}"`)
+          }
+          break
+          
+        case 'description':
+          if (oldValue && newValue) {
+            if (String(oldValue).length > 50 || String(newValue).length > 50) {
+              changesList.push('updated description')
+            } else {
+              changesList.push(`changed description from "${oldValue}" to "${newValue}"`)
+            }
+          } else if (newValue) {
+            changesList.push('added description')
+          } else if (oldValue) {
+            changesList.push('removed description')
+          }
+          break
+          
+        case 'status':
+          const statusMap: Record<string, string> = {
+            'TODO': 'To Do',
+            'IN_PROGRESS': 'In Progress', 
+            'DONE': 'Done',
+            'CANCELLED': 'Cancelled',
+            'BLOCKED': 'Blocked'
+          }
+          const oldStatus = statusMap[oldValue] || oldValue
+          const newStatus = statusMap[newValue] || newValue
+          changesList.push(`changed status from ${oldStatus} to ${newStatus}`)
+          break
+          
+        case 'priority':
+          const priorityMap: Record<string, string> = {
+            'LOW': 'Low',
+            'MEDIUM': 'Medium',
+            'HIGH': 'High',
+            'URGENT': 'Urgent'
+          }
+          const oldPriority = priorityMap[oldValue] || oldValue
+          const newPriority = priorityMap[newValue] || newValue
+          changesList.push(`changed priority from ${oldPriority} to ${newPriority}`)
+          break
+          
+        case 'dueDate':
+          if (oldValue && newValue) {
+            const oldDate = new Date(oldValue).toLocaleDateString()
+            const newDate = new Date(newValue).toLocaleDateString()
+            changesList.push(`changed due date from ${oldDate} to ${newDate}`)
+          } else if (newValue) {
+            const newDate = new Date(newValue).toLocaleDateString()
+            changesList.push(`set due date to ${newDate}`)
+          } else if (oldValue) {
+            changesList.push('removed due date')
+          }
+          break
+          
+        case 'assignedToId':
+          // Check if we have processed names available
+          const processed = (diffData as any).processed
+          if (processed?.assignedTo) {
+            const oldAssignee = processed.assignedTo.old
+            const newAssignee = processed.assignedTo.new
+            
+            if (oldAssignee && newAssignee) {
+              changesList.push(`reassigned from ${oldAssignee} to ${newAssignee}`)
+            } else if (newAssignee) {
+              changesList.push(`assigned to ${newAssignee}`)
+            } else if (oldAssignee) {
+              changesList.push(`unassigned from ${oldAssignee}`)
+            }
+          } else {
+            // Fallback to IDs if names not available
+            if (oldValue && newValue) {
+              changesList.push(`reassigned to different user`)
+            } else if (newValue) {
+              changesList.push(`assigned to user`)
+            } else if (oldValue) {
+              changesList.push(`unassigned`)
+            }
+          }
+          break
+          
+        case 'boardId':
+          // Check if we have processed names available
+          const processedBoard = (diffData as any).processed
+          if (processedBoard?.board) {
+            const oldBoard = processedBoard.board.old
+            const newBoard = processedBoard.board.new
+            
+            if (oldBoard && newBoard) {
+              changesList.push(`moved from "${oldBoard}" board to "${newBoard}" board`)
+            } else if (newBoard) {
+              changesList.push(`moved to "${newBoard}" board`)
+            } else if (oldBoard) {
+              changesList.push(`removed from "${oldBoard}" board`)
+            }
+          } else {
+            // Fallback to IDs if names not available
+            if (oldValue && newValue) {
+              changesList.push(`moved to different board`)
+            } else if (newValue) {
+              changesList.push(`moved to board`)
+            } else if (oldValue) {
+              changesList.push(`removed from board`)
+            }
+          }
+          break
+          
+        case 'name':
+          if (oldValue && newValue) {
+            changesList.push(`renamed from "${oldValue}" to "${newValue}"`)
+          } else if (newValue) {
+            changesList.push(`set name to "${newValue}"`)
+          }
+          break
+          
+        default:
+          // Handle unknown fields with basic formatting
+          if (typeof oldValue === 'string' && typeof newValue === 'string' && 
+              (oldValue.length > 50 || newValue.length > 50)) {
+            changesList.push(`updated ${field}`)
+          } else if (oldValue && newValue) {
+            changesList.push(`changed ${field} from "${oldValue}" to "${newValue}"`)
+          } else if (newValue) {
+            changesList.push(`set ${field} to "${newValue}"`)
+          } else if (oldValue) {
+            changesList.push(`removed ${field}`)
+          }
+          break
       }
     }
 
@@ -644,28 +1010,30 @@ class ActivityLogService {
   }
 
   // Get detailed diff information for a specific activity log
-  getDiffDetails(diffData: any) {
+  getDiffDetails(diffData: any): DiffDetails | null {
     if (!diffData) {
       return null
     }
 
+    const changes = diffData.changes as Record<string, FieldChange>
     return {
-      summary: diffData.summary || {},
-      changes: diffData.changes || {},
+      summary: diffData.summary || { fieldsChanged: [], changeCount: 0 },
+      changes: changes || {},
       processed: diffData.processed || {},
-      hasTextDiffs: Object.values(diffData.changes || {}).some((change: any) => change.textDiff),
+      hasTextDiffs: Object.values(changes || {}).some((change: FieldChange) => change.textDiff),
       changeCount: diffData.summary?.changeCount || 0,
       fieldsChanged: diffData.summary?.fieldsChanged || []
     }
   }
 
   // Get text diff for a specific field (useful for rendering in UI)
-  getTextDiffForField(diffData: any, fieldName: string) {
-    if (!diffData?.changes?.[fieldName]?.textDiff) {
+  getTextDiffForField(diffData: any, fieldName: string): TextDiffPart[] | null {
+    const changes = diffData.changes as Record<string, FieldChange>
+    if (!changes?.[fieldName]?.textDiff) {
       return null
     }
 
-    return diffData.changes[fieldName].textDiff
+    return changes[fieldName].textDiff || null
   }
 }
 

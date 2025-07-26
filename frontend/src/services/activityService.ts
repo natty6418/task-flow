@@ -1,7 +1,7 @@
     
 import API from './api';
 import { AxiosError } from 'axios';
-import {  ActivityLog, ActionType} from '@/types/type';
+import {  ActivityLog, ActionType, ActivityLogDiffResponse} from '@/types/type';
 
 
 
@@ -15,10 +15,11 @@ const extractError = (err: unknown): string => {
 };
 
 
-export const fetchActivityLogsForProject = async (projectId: string): Promise<ActivityLog[]> => {
+export const fetchActivityLogsForProject = async (projectId: string, limit?: number, offset?: number): Promise<ActivityLog[]> => {
     try{
         const res = await API.get(`/activity/project/${projectId}`, {
             withCredentials: true,
+            params: { limit, offset }
         });
         return res.data.logs;
     }
@@ -27,10 +28,11 @@ export const fetchActivityLogsForProject = async (projectId: string): Promise<Ac
     }
 }
 
-export const fetchActivityForTask = async (taskId: string): Promise<ActivityLog[]> => {
+export const fetchActivityForTask = async (taskId: string, limit?: number, offset?: number): Promise<ActivityLog[]> => {
     try {
         const res = await API.get(`/activity/task/${taskId}`, {
             withCredentials: true,
+            params: { limit, offset }
         });
         return res.data.logs;
     } catch (err) {
@@ -38,10 +40,11 @@ export const fetchActivityForTask = async (taskId: string): Promise<ActivityLog[
     }
 }
 
-export const fetchUserActivity = async (userId: string): Promise<ActivityLog[]> => {
+export const fetchUserActivity = async (userId: string, limit?: number, offset?: number): Promise<ActivityLog[]> => {
     try {
         const res = await API.get(`/activity/user/${userId}`, {
             withCredentials: true,
+            params: { limit, offset }
         });
         return res.data.logs;
     } catch (err) {
@@ -56,6 +59,19 @@ export const fetchRecentActivity = async (limit: number = 10): Promise<ActivityL
             withCredentials: true,
         });
         return res.data.logs;
+    } catch (err) {
+        throw new Error(extractError(err));
+    }
+}
+
+export const fetchLogDiff = async (logId: string): Promise<
+ActivityLogDiffResponse
+> => {
+    try {
+        const res = await API.get(`/activity/diff/${logId}`, {
+            withCredentials: true,
+        });
+        return res.data ;
     } catch (err) {
         throw new Error(extractError(err));
     }

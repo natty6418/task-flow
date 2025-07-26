@@ -3,8 +3,18 @@ import prisma from '../models/prismaClient'
 import passport from 'passport'
 import { User } from '@prisma/client'
 import activityLogService from '../services/activityLogService'
+import { EnhancedActivityLog, ActivityLogDiffResponse, TextDiffPart } from '../types/activityLog'
 
 const router = express.Router()
+
+// Helper function to enhance logs with diff details
+function enhanceLogs(logs: any[]): any[] {
+  return logs.map(log => ({
+    ...log,
+    diffDetails: log.diffData ? activityLogService.getDiffDetails(log.diffData) : null,
+    diffSummary: log.diffData ? activityLogService.generateDiffSummary(log.diffData) : null
+  }))
+}
 
 // Get activity logs for a specific project
 router.get('/project/:projectId',
@@ -47,11 +57,7 @@ router.get('/project/:projectId',
       )
 
       // Enhance logs with diff details
-      const enhancedLogs = logs.map(log => ({
-        ...log,
-        diffDetails: log.diffData ? activityLogService.getDiffDetails(log.diffData) : null,
-        diffSummary: log.diffData ? activityLogService.generateDiffSummary(log.diffData) : null
-      }))
+      const enhancedLogs = enhanceLogs(logs)
 
       res.json({
         logs: enhancedLogs,
@@ -114,11 +120,7 @@ router.get('/task/:taskId',
       const logs = await activityLogService.getTaskActivityLogs(taskId)
 
       // Enhance logs with diff details
-      const enhancedLogs = logs.map(log => ({
-        ...log,
-        diffDetails: log.diffData ? activityLogService.getDiffDetails(log.diffData) : null,
-        diffSummary: log.diffData ? activityLogService.generateDiffSummary(log.diffData) : null
-      }))
+      const enhancedLogs = enhanceLogs(logs)
 
       res.json({ logs: enhancedLogs })
     } catch (error) {
@@ -170,11 +172,7 @@ router.get('/board/:boardId',
       const logs = await activityLogService.getBoardActivityLogs(boardId)
 
       // Enhance logs with diff details
-      const enhancedLogs = logs.map(log => ({
-        ...log,
-        diffDetails: log.diffData ? activityLogService.getDiffDetails(log.diffData) : null,
-        diffSummary: log.diffData ? activityLogService.generateDiffSummary(log.diffData) : null
-      }))
+      const enhancedLogs = enhanceLogs(logs)
 
       res.json({ logs: enhancedLogs })
     } catch (error) {
@@ -211,11 +209,7 @@ router.get('/user/:userId',
       )
 
       // Enhance logs with diff details
-      const enhancedLogs = logs.map(log => ({
-        ...log,
-        diffDetails: log.diffData ? activityLogService.getDiffDetails(log.diffData) : null,
-        diffSummary: log.diffData ? activityLogService.generateDiffSummary(log.diffData) : null
-      }))
+      const enhancedLogs = enhanceLogs(logs)
 
       res.json({
         logs: enhancedLogs,
@@ -249,11 +243,7 @@ router.get('/recent',
       
 
       // Enhance logs with diff details
-      const enhancedLogs = logs.map(log => ({
-        ...log,
-        diffDetails: log.diffData ? activityLogService.getDiffDetails(log.diffData) : null,
-        diffSummary: log.diffData ? activityLogService.generateDiffSummary(log.diffData) : null
-      }))
+      const enhancedLogs = enhanceLogs(logs)
 
       res.json({ logs: enhancedLogs })
     } catch (error) {
@@ -314,7 +304,7 @@ router.get('/diff/:logId',
       const diffSummary = activityLogService.generateDiffSummary(log.diffData)
 
       // Get text diffs for each field that has them
-      const textDiffs: Record<string, any> = {}
+      const textDiffs: Record<string, TextDiffPart[]> = {}
       if (diffDetails) {
         for (const fieldName of diffDetails.fieldsChanged) {
           const textDiff = activityLogService.getTextDiffForField(log.diffData, fieldName)
@@ -324,7 +314,7 @@ router.get('/diff/:logId',
         }
       }
 
-      res.json({
+      const response: ActivityLogDiffResponse = {
         logId: log.id,
         action: log.action,
         message: log.message,
@@ -332,7 +322,9 @@ router.get('/diff/:logId',
         diffDetails,
         diffSummary,
         textDiffs
-      })
+      }
+
+      res.json(response)
     } catch (error) {
       console.error('Error fetching activity log diff:', error)
       res.status(500).json({ error: 'Failed to fetch activity log diff' })

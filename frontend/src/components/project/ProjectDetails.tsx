@@ -408,10 +408,6 @@ export default function ProjectDetails({ project, setProject }: { project: Proje
             />
 
             {/* Recent Tasks Panel */}
-            <ProjectRecentTasksPanel
-              tasks={tasks}
-              setShowTaskModal={setShowTaskModal}
-            />
           </div>
         </div>
       </div>
