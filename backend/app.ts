@@ -1,5 +1,7 @@
-import express from 'express';
 import * as dotenv from 'dotenv';
+dotenv.config();
+
+import express from 'express';
 import { Request, Response } from 'express';
 import auth from "./routes/auth";
 import user from "./routes/user";
@@ -15,7 +17,7 @@ import notificationRoutes from "./routes/notification"
 import activityRoutes from "./routes/activity"
 
 
-dotenv.config();
+
 
 
 
