@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutIcon, ListIcon } from "lucide-react";
-import { Board, Task, Project } from "@/types/type";
+import { Board, Task } from "@/types/type";
 import BoardsList from "../boards/BoardsList";
 import KanbanBoard from "@/components/boards/kanban/KanbanBoard";
 

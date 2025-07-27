@@ -4,7 +4,6 @@ import { createContext, useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "../types/type";
 import API from "@/services/api";
-import { LogOut } from "lucide-react";
 import { logout as logoutService } from "@/services/authService";
 interface AuthContextType {
   user: User | null;

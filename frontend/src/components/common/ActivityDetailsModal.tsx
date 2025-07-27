@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   X, 
   Clock, 
@@ -35,14 +35,7 @@ const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
   const [diffError, setDiffError] = useState<string | null>(null);
   const [showDiffDetails, setShowDiffDetails] = useState(false);
 
-  // Load diff data when activity changes
-  useEffect(() => {
-    if (activity && isOpen) {
-      loadDiffData();
-    }
-  }, [activity, isOpen]);
-
-  const loadDiffData = async () => {
+  const loadDiffData = useCallback(async () => {
     if (!activity) return;
 
     try {
@@ -57,7 +50,14 @@ const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
     } finally {
       setLoadingDiff(false);
     }
-  };
+  }, [activity]);
+
+  // Load diff data when activity changes
+  useEffect(() => {
+    if (activity && isOpen) {
+      loadDiffData();
+    }
+  }, [activity, isOpen, loadDiffData]);
 
   const getActivityIcon = (action: ActionType) => {
     switch (action) {
@@ -127,7 +127,7 @@ const ActivityDetailsModal: React.FC<ActivityDetailsModalProps> = ({
     );
   };
 
-const renderFieldChange = (fieldName: string, change: any) => {
+const renderFieldChange = (fieldName: string, change: { type: string; oldValue?: unknown; newValue?: unknown }) => {
     const displayName = fieldName.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
     
     return (

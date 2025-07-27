@@ -20,7 +20,6 @@ import ProjectHeader from "./ProjectHeader";
 import ProjectMainContent from "./ProjectMainContent";
 import ProjectStatsPanel from "./ProjectStatsPanel";
 import ProjectMembersPanel from "./ProjectMembersPanel";
-import ProjectRecentTasksPanel from "./ProjectRecentTasksPanel";
 import { createTask , deleteTask, updateTask, assignTask} from "@/services/taskSevice";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -56,7 +55,7 @@ export default function ProjectDetails({ project, setProject }: { project: Proje
       boards: boards,
       tasks: tasks,
     });
-  }, [debouncedName, debouncedDescription, members, boards, tasks]);
+  }, [debouncedName, debouncedDescription, members, boards, tasks, project, setProject]);
 
   
   const isAdmin = members.some((m) => m.user.id === user?.id && m.role === Role.ADMIN);

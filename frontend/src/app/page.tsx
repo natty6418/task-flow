@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import Image from 'next/image';
 import { CheckCircle, Users, Calendar, BarChart3, ArrowRight, Star } from 'lucide-react';
 
 export default function Home() {

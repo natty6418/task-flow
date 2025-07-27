@@ -125,4 +125,6 @@ const TaskCard: React.FC<TaskCardProps> = React.memo(({ task, isActive }) => {
   );
 });
 
+TaskCard.displayName = 'TaskCard';
+
 export default TaskCard;

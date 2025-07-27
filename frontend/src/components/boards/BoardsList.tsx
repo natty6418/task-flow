@@ -12,7 +12,6 @@ import { createBoard, deleteBoard } from "@/services/boardService";
 export default function BoardsList({
   boards,
   tasks,
-  setShowAddBoardModal,
   setTasks,
   setBoards,
   projectId,

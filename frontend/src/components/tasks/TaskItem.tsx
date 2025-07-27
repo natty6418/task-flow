@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Task, Priority, Status, ProjectMember, Role } from "@/types/type";
-import { Circle, Calendar, Flag, MoreVertical, CircleCheck, ChevronDown, ChevronRight, User, X, Check } from "lucide-react";
+import { Circle, Flag, MoreVertical, CircleCheck, ChevronDown, ChevronRight, User, X, Check } from "lucide-react";
 import { format } from "date-fns";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -78,12 +78,12 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
     content: task.description || '',
     editable: canEdit && !isUpdating && !canOnlyEditStatus,
     immediatelyRender: false, // Fix SSR hydration issues
-    onUpdate: ({ editor }) => {
+    onUpdate: () => {
       // Don't save immediately, just track local changes
     },
-    onBlur: ({ editor }) => {
-      const content = editor.getHTML();
-      const textContent = editor.getText().trim();
+    onBlur: ({ editor: editorInstance }) => {
+      const content = editorInstance.getHTML();
+      const textContent = editorInstance.getText().trim();
       
       // Only save if there's actual content
       if (textContent && textContent !== '') {

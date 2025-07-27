@@ -1,7 +1,7 @@
     
 import API from './api';
 import { AxiosError } from 'axios';
-import {  ActivityLog, ActionType, ActivityLogDiffResponse} from '@/types/type';
+import {  ActivityLog, ActivityLogDiffResponse} from '@/types/type';
 
 
 

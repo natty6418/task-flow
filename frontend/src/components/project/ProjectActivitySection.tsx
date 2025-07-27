@@ -15,10 +15,9 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
-  ChevronLeft,
-  Diff
+  ChevronLeft
 } from 'lucide-react';
-import { ActivityLog, ActionType, ActivityLogDiffResponse, TextDiffPart } from '@/types/type';
+import { ActivityLog, ActionType, ActivityLogDiffResponse } from '@/types/type';
 import { fetchActivityLogsForProject, fetchLogDiff } from '@/services/activityService';
 
 interface ProjectActivitySectionProps {
@@ -49,7 +48,6 @@ const ProjectActivitySection: React.FC<ProjectActivitySectionProps> = ({ project
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Reduced to 5 to make pagination more visible
-  const [totalItems, setTotalItems] = useState(0);
 
   // Load diff data for an activity
   const loadDiffData = useCallback(async (activityId: string) => {
@@ -94,14 +92,13 @@ const ProjectActivitySection: React.FC<ProjectActivitySectionProps> = ({ project
   };
 
   // Load project activities with pagination
-  const loadActivities = useCallback(async (page: number = 1) => {
+  const loadActivities = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       // Load a large batch to populate pagination for demo
       const data = await fetchActivityLogsForProject(projectId, 100); // Load 100 activities
       setActivities(data);
-      setTotalItems(data.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load project activities');
       console.error('Error loading project activities:', err);
@@ -116,7 +113,6 @@ const ProjectActivitySection: React.FC<ProjectActivitySectionProps> = ({ project
       setRefreshing(true);
       const data = await fetchActivityLogsForProject(projectId, 100);
       setActivities(data);
-      setTotalItems(data.length);
     } catch (err) {
       console.error('Error refreshing activities:', err);
     } finally {
@@ -126,7 +122,7 @@ const ProjectActivitySection: React.FC<ProjectActivitySectionProps> = ({ project
 
   // Initial load
   useEffect(() => {
-    loadActivities(1);
+    loadActivities();
   }, [loadActivities]);
 
   // Auto-refresh setup
@@ -272,30 +268,8 @@ const ProjectActivitySection: React.FC<ProjectActivitySectionProps> = ({ project
     });
   };
 
-  // Render text diff
-  const renderTextDiff = (textDiffs: TextDiffPart[]) => {
-    return (
-      <div className="font-mono text-sm p-3 rounded border overflow-x-auto bg-gray-50">
-        {textDiffs.map((part, index) => (
-          <span
-            key={index}
-            className={
-              part.added
-                ? 'bg-green-200 text-green-800'
-                : part.removed
-                ? 'bg-red-200 text-red-800 line-through'
-                : 'text-gray-700'
-            }
-          >
-            {part.value}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
   // Render field change - minimalistic version
-  const renderFieldChange = (fieldName: string, change: any) => {
+  const renderFieldChange = (fieldName: string, change: { type: string; oldValue?: unknown; newValue?: unknown }) => {
     const displayName = fieldName.replace(/([A-Z])/g, ' $1').trim().toLowerCase();
     
     return (
@@ -387,7 +361,7 @@ const ProjectActivitySection: React.FC<ProjectActivitySectionProps> = ({ project
               {error}
             </div>
             <button
-              onClick={() => loadActivities(1)}
+              onClick={() => loadActivities()}
               className="text-blue-600 hover:text-blue-800 font-medium text-sm"
             >
               Try again
@@ -397,7 +371,6 @@ const ProjectActivitySection: React.FC<ProjectActivitySectionProps> = ({ project
           <div>
             <div className="divide-y divide-gray-200">
               {paginatedActivities.map((activity) => {
-                const originalActivity = activities.find(a => a.id === activity.id);
                 const isExpanded = expandedActivity === activity.id;
                 const activityDiff = diffData[activity.id];
                 const isLoadingActivityDiff = loadingDiff[activity.id];

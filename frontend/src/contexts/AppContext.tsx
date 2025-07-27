@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useState, useEffect, useContext, useCallback } from "react";
 import { Task, Project } from "../types/type";
 import API from "@/services/api";
 import { useAuth } from "./AuthContext";
@@ -25,7 +25,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [loadingTasks, setLoadingTasks] = useState(true);
   const { user } = useAuth();
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     if (!user) {
       setProjects([]);
       setLoadingProjects(false);
@@ -42,9 +42,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoadingProjects(false);
     }
-  };
+  }, [user]);
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     if (!user) {
       setTasks([]);
       setLoadingTasks(false);
@@ -61,7 +61,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoadingTasks(false);
     }
-  };
+  }, [user]);
 
   const refreshProjects = async () => {
     await fetchProjects();
@@ -74,12 +74,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch projects when user changes
   useEffect(() => {
     fetchProjects();
-  }, [user]);
+  }, [user, fetchProjects]);
 
   // Fetch tasks when user or projects change
   useEffect(() => {
     fetchTasks();
-  }, [user, projects]);
+  }, [user, projects, fetchTasks]);
 
   return (
     <AppContext.Provider

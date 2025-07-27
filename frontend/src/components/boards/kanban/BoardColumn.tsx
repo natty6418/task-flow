@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { Board, Task, Status } from '@/types/type';
 import TaskCard from './TaskCard';
 import { useDebouncedCallback } from 'use-debounce';
-import API from '@/services/api';
 import { Trash2 } from 'lucide-react';
 import { updateBoard } from '@/services/boardService';
 
@@ -13,7 +12,6 @@ interface BoardColumnProps {
   tasks: Task[];
   availableTasks?: Task[];
   onAddTaskToBoard?: (boardId: string, taskId: string) => void;
-  onRemoveTaskFromBoard?: (boardId: string, taskId: string) => void;
   onDeleteBoard?: (boardId: string) => void;
   setBoards?: React.Dispatch<React.SetStateAction<Board[]>>;
   projectId?: string;
@@ -27,7 +25,6 @@ const BoardColumn: React.FC<BoardColumnProps> = React.memo(({
   tasks,
   availableTasks = [],
   onAddTaskToBoard,
-  onRemoveTaskFromBoard,
   onDeleteBoard,
   activeTask,
   setBoards,
@@ -336,5 +333,7 @@ const BoardColumn: React.FC<BoardColumnProps> = React.memo(({
     </div>
   );
 });
+
+BoardColumn.displayName = 'BoardColumn';
 
 export default BoardColumn;

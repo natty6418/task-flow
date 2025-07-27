@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, Menu, Mountain, User, AlertTriangle, Settings, X } from "lucide-react";
+import { LogOut, Menu, User, AlertTriangle, Settings, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import Image from "next/image";
@@ -15,7 +15,7 @@ const DropdownMenuItem = ({ children, onClick, className }: { children: React.Re
 const DropdownMenuSeparator = () => <hr className="my-1 border-gray-200 dark:border-gray-600" />;
 
 export default function Header() {
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const router = useRouter();

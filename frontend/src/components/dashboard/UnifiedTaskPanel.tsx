@@ -4,7 +4,6 @@ import React, { useState, useCallback, useRef } from "react";
 import { Task, Status, Priority } from "@/types/type";
 import { Plus, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
-import API from "@/services/api";
 import TaskItem from "../tasks/TaskItem";
 import SectionCard from "./SectionCard";
 import { useDebouncedCallback } from "use-debounce";

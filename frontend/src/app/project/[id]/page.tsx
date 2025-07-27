@@ -55,7 +55,7 @@ export default function ProjectPage() {
     };
 
     loadProject();
-  }, [id, projects, setProjects]); // Include all dependencies
+  }, [id, projects, setProjects, project]); // Include all dependencies
 
   // Handle project updates from child component
   const handleProjectUpdate = (updatedProject: Project) => {

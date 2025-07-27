@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Task, Board, Status } from "@/types/type";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import TaskItem from "../tasks/TaskItem";
@@ -18,9 +18,7 @@ export default function BoardItem({
   isExpanded,
   setTasks,
   setBoards,
-  projectId,
   tasks,
-  handleAddTask,
   handleUpdateTask,
   handleRemoveTask,
   updatingTasks,
@@ -122,7 +120,7 @@ export default function BoardItem({
   ) => {
     handleEdit('description', newDescription);
   };
-  const handleAddTaskToBoard = (boardId: string, task: Task) => {
+  const handleAddTaskToBoard = async (boardId: string, task: Task) => {
     // Update global tasks state with boardId
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, boardId } : t))
@@ -143,7 +141,7 @@ export default function BoardItem({
     // Update local board state
     setBoard((prev) => ({ ...prev, tasks: [...(prev.tasks || []), { ...task, boardId }] }));
     try{
-      const updatedBoard = updateBoard({
+      await updateBoard({
         ...board,
         tasks: [...(board.tasks || []), { ...task, boardId }],
       });

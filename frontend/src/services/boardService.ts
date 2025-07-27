@@ -1,6 +1,6 @@
 import API from './api';
 import { AxiosError } from 'axios';
-import {  Board, Task } from '@/types/type';
+import {  Board } from '@/types/type';
 
 
 

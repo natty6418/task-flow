@@ -189,7 +189,7 @@ export interface TextDiffPart {
   removed: boolean
 }
 
-export interface FieldChange<T = any> {
+export interface FieldChange<T = unknown> {
   oldValue: T
   newValue: T
   type: 'added' | 'removed' | 'modified'
@@ -237,7 +237,7 @@ export interface DiffData<T = TaskDiffChanges | BoardDiffChanges | ProjectDiffCh
   changes: T
   summary: DiffSummary
   processed?: ProcessedChanges
-  [key: string]: any // Allow additional properties for Prisma JSON compatibility
+  [key: string]: unknown // Allow additional properties for Prisma JSON compatibility
 }
 
 export interface DiffDetails {
@@ -292,8 +292,8 @@ export interface EnhancedActivityLog {
 
 // Type for the changes detection input
 export interface ChangeDetectionInput {
-  old: any
-  new: any
+  old: unknown
+  new: unknown
 }
 
 // Utility type for creating diff data

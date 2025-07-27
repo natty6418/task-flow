@@ -1,6 +1,6 @@
 import API from "./api";
 import { AxiosError } from "axios";
-import { Task, Priority, Status } from "@/types/type";
+import { Task } from "@/types/type";
 
 interface ErrorResponse {
   message: string;

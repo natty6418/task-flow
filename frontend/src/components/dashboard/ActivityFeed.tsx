@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import SectionCard from './SectionCard';
 import { 
-  Clock, 
   CheckCircle, 
   UserPlus, 
   FolderPlus, 
@@ -13,7 +12,6 @@ import {
   Calendar, 
   ArrowRight,
   FileText,
-  User,
   AlertCircle
 } from 'lucide-react';
 import { ActivityLog, ActionType } from '@/types/type';
@@ -35,7 +33,6 @@ const RecentActivity: React.FC<{ numActivities: number }> = ({ numActivities }) 
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   // Convert activity logs to activity items
   const convertToActivityItems = (activityLogs: ActivityLog[]): ActivityItem[] => {
@@ -60,14 +57,13 @@ const RecentActivity: React.FC<{ numActivities: number }> = ({ numActivities }) 
       setError(null);
       const data = await fetchRecentActivity(numActivities);
       setActivities(data);
-      setLastUpdate(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load activity');
       console.error('Error loading activity:', err);
     } finally {
       if (showLoading) setLoading(false);
     }
-  }, []);
+  }, [numActivities]);
 
   // Initial load
   useEffect(() => {

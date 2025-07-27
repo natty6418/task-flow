@@ -58,7 +58,7 @@ const NotificationSettings: React.FC = () => {
             checked ? 'bg-blue-600' : 'bg-gray-200'
           }`}
           role="switch"
-          aria-checked={checked}
+          aria-checked={checked ? "true" : "false"}
           aria-labelledby={id}
         >
           <span

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import API from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -117,7 +116,7 @@ export default function Login() {
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-medium">
               Sign up
             </Link>

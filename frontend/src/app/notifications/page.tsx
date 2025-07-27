@@ -17,7 +17,7 @@ const NotificationsPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const params: any = { page, limit: 20 };
+      const params: { page: number; limit: number; isRead?: boolean } = { page, limit: 20 };
       if (isRead !== undefined) params.isRead = isRead;
       
       const data = await fetchNotifications(params);

@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
-import { Project, Status, Priority } from '@/types/type';
-import { Folder, Users, Calendar, Plus, MoreVertical, Settings, Eye, Star, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Project, Status } from '@/types/type';
+import { Folder, Users, Calendar, Plus, MoreVertical, Settings, Eye, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import Loader from '@/components/common/Loader';
 import { CreateProjectModal } from '@/components/modals';

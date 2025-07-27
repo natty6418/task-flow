@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Shield, Clock, BarChart3, Loader, AlertCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Shield, Loader } from 'lucide-react';
 import { format } from 'date-fns';
 import { fetchUserProfile, updateUserProfile } from '@/services/userService';
 import { UserProfile } from '@/types/type';
@@ -43,7 +43,7 @@ const ProfilePage = () => {
           company: profileData.company || '',
           
         });
-      } catch (err) {
+      } catch {
         // Profile doesn't exist or failed to load - use generic placeholders
         setError(null); // Don't show error for missing profile
         setProfile(null);
