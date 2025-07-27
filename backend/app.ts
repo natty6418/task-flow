@@ -70,7 +70,9 @@ app.get('/ping', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
 
-
+process.on('exit', (code) => {
+  console.log(`About to exit with code: ${code}`);
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://${HOST}:${PORT}`);
