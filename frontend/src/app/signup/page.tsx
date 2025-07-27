@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import API from "@/services/api";
+
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-
+import { fetchCurrentUser } from "@/services/userService";
+import { signUp } from "@/services/authService";
 export default function Signup() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -15,9 +16,10 @@ export default function Signup() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await API.post('/auth/signup', { name, email, password });
-            login(res.data.token, res.data.user);
-            router.push('/');
+            await signUp(name, email, password);
+            const res = await fetchCurrentUser();
+            login(res);
+            router.push("/");
         } catch (error) {
             console.error("Signup failed:", error);
         }
