@@ -1,40 +1,71 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Shield, Clock, BarChart3 } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Shield, Clock, BarChart3, Loader, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { fetchUserProfile, updateUserProfile } from '@/services/userService';
+import { UserProfile } from '@/types/type';
+import RecentActivity from '@/components/dashboard/ActivityFeed';
 
 const ProfilePage = () => {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [formData, setFormData] = useState({
-    name: user?.name || 'John Doe',
-    email: user?.email || 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    location: 'San Francisco, CA',
-    bio: 'Passionate software developer with 5 years of experience in full-stack development. Love building scalable applications and working with modern technologies.',
-    jobTitle: 'Senior Frontend Developer',
-    company: 'TechCorp Inc.',
-    timezone: 'PST (UTC-8)',
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    bio: '',
+    jobTitle: '',
+    company: '',
+    
   });
 
-  // Dummy activity data
-  const activityStats = {
-    tasksCompleted: 47,
-    projectsContributed: 8,
-    averageTaskTime: '2.3 days',
-    efficiency: 92,
-  };
+  // Fetch user profile data on component mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const profileData = await fetchUserProfile();
+        setProfile(profileData);
+        setFormData({
+          name: user?.name || 'User',
+          email: user?.email || 'user@example.com',
+          phone: profileData.phone || '',
+          location: profileData.location || '',
+          bio: profileData.bio || '',
+          jobTitle: profileData.jobTitle || '',
+          company: profileData.company || '',
+          
+        });
+      } catch (err) {
+        // Profile doesn't exist or failed to load - use generic placeholders
+        setError(null); // Don't show error for missing profile
+        setProfile(null);
+        setFormData({
+          name: user?.name || 'User',
+          email: user?.email || 'user@example.com',
+          phone: '',
+          location: '',
+          bio: 'Welcome to TaskFlow! Update your profile to let others know more about you.',
+          jobTitle: '',
+          company: '',
+          
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Dummy recent activity
-  const recentActivity = [
-    { id: 1, action: 'Completed task', item: 'Update user authentication', time: '2 hours ago' },
-    { id: 2, action: 'Created project', item: 'Mobile App Redesign', time: '1 day ago' },
-    { id: 3, action: 'Assigned to task', item: 'Fix payment gateway bug', time: '2 days ago' },
-    { id: 4, action: 'Updated profile', item: 'Added new skills', time: '1 week ago' },
-  ];
+    loadProfile();
+  }, [user]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -42,35 +73,92 @@ const ProfilePage = () => {
     }));
   };
 
-  const handleSave = () => {
-    // Here you would typically save to backend
-    console.log('Saving profile data:', formData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      // Update user profile (excluding name, email, and timezone which aren't part of UserProfile)
+      const updatedProfile = await updateUserProfile({
+        bio: formData.bio,
+        jobTitle: formData.jobTitle,
+        location: formData.location,
+        company: formData.company,
+        phone: formData.phone,
+      });
+      
+      setProfile(updatedProfile);
+      setIsEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
-    // Reset form data to original values
-    setFormData({
-      name: user?.name || 'John Doe',
-      email: user?.email || 'john.doe@example.com',
-      phone: '+1 (555) 123-4567',
-      location: 'San Francisco, CA',
-      bio: 'Passionate software developer with 5 years of experience in full-stack development. Love building scalable applications and working with modern technologies.',
-      jobTitle: 'Senior Frontend Developer',
-      company: 'TechCorp Inc.',
-      timezone: 'PST (UTC-8)',
-    });
+    // Reset form data to current profile values or generic placeholders
+    if (profile) {
+      setFormData({
+        name: user?.name || 'User',
+        email: user?.email || 'user@example.com',
+        phone: profile.phone || '',
+        location: profile.location || '',
+        bio: profile.bio || '',
+        jobTitle: profile.jobTitle || '',
+        company: profile.company || '',
+        
+      });
+    } else {
+      // No profile exists, use generic placeholders
+      setFormData({
+        name: user?.name || 'User',
+        email: user?.email || 'user@example.com',
+        phone: '',
+        location: '',
+        bio: 'Welcome to TaskFlow! Update your profile to let others know more about you.',
+        jobTitle: '',
+        company: '',
+        
+      });
+    }
     setIsEditing(false);
+    setError(null);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader className="w-6 h-6 animate-spin text-blue-600" />
+          <span className="text-gray-600">Loading profile...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="h-full bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
           <p className="text-gray-600 mt-2">Manage your personal information and preferences</p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <X className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Card */}
@@ -96,20 +184,8 @@ const ProfilePage = () => {
                     </div>
                     
                     {/* Basic Info */}
-                    <div>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          title="Full name"
-                          placeholder="Enter your full name"
-                          className="text-2xl font-bold text-gray-900 border border-gray-300 rounded-md px-2 py-1 mb-2"
-                        />
-                      ) : (
-                        <h2 className="text-2xl font-bold text-gray-900 mb-1">{formData.name}</h2>
-                      )}
+                    <div className="space-y-3">
+                      <h2 className="text-2xl font-bold text-gray-900">{formData.name}</h2>
                       
                       {isEditing ? (
                         <input
@@ -119,10 +195,10 @@ const ProfilePage = () => {
                           onChange={handleInputChange}
                           title="Job title"
                           placeholder="Enter your job title"
-                          className="text-gray-600 border border-gray-300 rounded-md px-2 py-1 mb-1 block"
+                          className="text-gray-600 border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-0 focus:border-gray-300"
                         />
                       ) : (
-                        <p className="text-gray-600 mb-1">{formData.jobTitle}</p>
+                        <p className="text-gray-600">{formData.jobTitle || 'Job title not specified'}</p>
                       )}
                       
                       {isEditing ? (
@@ -133,34 +209,17 @@ const ProfilePage = () => {
                           onChange={handleInputChange}
                           title="Company name"
                           placeholder="Enter your company name"
-                          className="text-gray-500 border border-gray-300 rounded-md px-2 py-1"
+                          className="text-gray-500 border border-gray-300 rounded-md px-3 py-2 w-full focus:outline-none focus:ring-0 focus:border-gray-300"
                         />
                       ) : (
-                        <p className="text-gray-500">{formData.company}</p>
+                        <p className="text-gray-500">{formData.company || 'Company not specified'}</p>
                       )}
                     </div>
                   </div>
                   
-                  {/* Edit Controls */}
-                  <div className="flex space-x-2">
-                    {isEditing ? (
-                      <>
-                        <button
-                          onClick={handleSave}
-                          className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          <Save className="w-4 h-4 mr-1" />
-                          Save
-                        </button>
-                        <button
-                          onClick={handleCancel}
-                          className="inline-flex items-center px-3 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors text-sm"
-                        >
-                          <X className="w-4 h-4 mr-1" />
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
+                  {/* Edit Button - Only show when not editing */}
+                  {!isEditing && (
+                    <div className="flex space-x-2">
                       <button
                         onClick={() => setIsEditing(true)}
                         className="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm"
@@ -168,8 +227,8 @@ const ProfilePage = () => {
                         <Edit3 className="w-4 h-4 mr-1" />
                         Edit
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -178,24 +237,15 @@ const ProfilePage = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center space-x-3">
-                    <Mail className="w-5 h-5 text-gray-400" />
-                    {isEditing ? (
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        title="Email address"
-                        placeholder="Enter your email address"
-                        className="flex-1 border border-gray-300 rounded-md px-2 py-1"
-                      />
-                    ) : (
+                    <Mail className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <div className="flex-1">
                       <span className="text-gray-900">{formData.email}</span>
-                    )}
+                      <p className="text-xs text-gray-500 mt-1">Email is managed in account settings</p>
+                    </div>
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <Phone className="w-5 h-5 text-gray-400" />
+                    <Phone className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     {isEditing ? (
                       <input
                         type="tel"
@@ -204,15 +254,15 @@ const ProfilePage = () => {
                         onChange={handleInputChange}
                         title="Phone number"
                         placeholder="Enter your phone number"
-                        className="flex-1 border border-gray-300 rounded-md px-2 py-1"
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-0 focus:border-gray-300"
                       />
                     ) : (
-                      <span className="text-gray-900">{formData.phone}</span>
+                      <span className="text-gray-900">{formData.phone || 'Phone number not provided'}</span>
                     )}
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <MapPin className="w-5 h-5 text-gray-400" />
+                    <MapPin className="w-5 h-5 text-gray-400 flex-shrink-0" />
                     {isEditing ? (
                       <input
                         type="text"
@@ -221,29 +271,13 @@ const ProfilePage = () => {
                         onChange={handleInputChange}
                         title="Location"
                         placeholder="Enter your location"
-                        className="flex-1 border border-gray-300 rounded-md px-2 py-1"
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-0 focus:border-gray-300"
                       />
                     ) : (
-                      <span className="text-gray-900">{formData.location}</span>
+                      <span className="text-gray-900">{formData.location || 'Location not specified'}</span>
                     )}
                   </div>
                   
-                  <div className="flex items-center space-x-3">
-                    <Clock className="w-5 h-5 text-gray-400" />
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="timezone"
-                        value={formData.timezone}
-                        onChange={handleInputChange}
-                        title="Timezone"
-                        placeholder="Enter your timezone"
-                        className="flex-1 border border-gray-300 rounded-md px-2 py-1"
-                      />
-                    ) : (
-                      <span className="text-gray-900">{formData.timezone}</span>
-                    )}
-                  </div>
                 </div>
               </div>
 
@@ -256,11 +290,13 @@ const ProfilePage = () => {
                     value={formData.bio}
                     onChange={handleInputChange}
                     rows={4}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 resize-none"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-0 focus:border-gray-300"
                     placeholder="Tell us about yourself..."
                   />
                 ) : (
-                  <p className="text-gray-700 leading-relaxed">{formData.bio}</p>
+                  <p className="text-gray-700 leading-relaxed">
+                    {formData.bio || 'No bio provided yet. Click edit to add information about yourself.'}
+                  </p>
                 )}
               </div>
 
@@ -276,59 +312,47 @@ const ProfilePage = () => {
                   <div className="flex items-center space-x-3">
                     <Calendar className="w-5 h-5 text-gray-400" />
                     <span className="text-gray-900">Member since: </span>
-                    <span className="text-gray-600">{format(new Date(2023, 5, 15), 'MMM dd, yyyy')}</span>
+                    <span className="text-gray-600">
+                      {user?.createdAt 
+                        ? format(new Date(user.createdAt), 'MMM dd, yyyy')
+                        : 'Unknown'
+                      }
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Activity Stats */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2" />
-                Activity Stats
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Tasks Completed</span>
-                  <span className="font-semibold text-gray-900">{activityStats.tasksCompleted}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Projects</span>
-                  <span className="font-semibold text-gray-900">{activityStats.projectsContributed}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Avg. Task Time</span>
-                  <span className="font-semibold text-gray-900">{activityStats.averageTaskTime}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Efficiency</span>
-                  <span className="font-semibold text-green-600">{activityStats.efficiency}%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-              <div className="space-y-3">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex flex-col space-y-1">
-                    <div className="text-sm text-gray-900">
-                      <span className="font-medium">{activity.action}:</span> {activity.item}
-                    </div>
-                    <div className="text-xs text-gray-500">{activity.time}</div>
+              {/* Form Actions - Only show when editing */}
+              {isEditing && (
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={handleCancel}
+                      disabled={saving}
+                      className="inline-flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+                    >
+                      {saving ? (
+                        <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
                   </div>
-                ))}
-              </div>
-              <button className="mt-4 text-sm text-blue-600 hover:text-blue-800 transition-colors">
-                View all activity →
-              </button>
+                </div>
+              )}
             </div>
           </div>
+
+          <RecentActivity numActivities={3}/>
         </div>
       </div>
     </div>

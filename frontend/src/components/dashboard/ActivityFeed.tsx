@@ -31,7 +31,7 @@ interface ActivityItem {
   boardId?: string;
 }
 
-const RecentActivity: React.FC = () => {
+const RecentActivity: React.FC<{ numActivities: number }> = ({ numActivities }) => {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,37 +54,20 @@ const RecentActivity: React.FC = () => {
   };
 
   // Load recent activity
-  const loadActivity = useCallback(async () => {
+  const loadActivity = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError(null);
-      const data = await fetchRecentActivity(5); // Get 5 recent activities
-
+      const data = await fetchRecentActivity(numActivities);
       setActivities(data);
       setLastUpdate(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load activity');
       console.error('Error loading activity:', err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
-
-  // Refresh activity data
-  const refreshActivity = useCallback(async () => {
-    try {
-      const data = await fetchRecentActivity(8);
-      // Only update if we have new or different data
-      if (data.length !== activities.length || 
-          (data.length > 0 && activities.length > 0 && 
-           new Date(data[0].createdAt) > new Date(activities[0].createdAt))) {
-        setActivities(data);
-        setLastUpdate(new Date());
-      }
-    } catch (err) {
-      console.error('Error refreshing activity:', err);
-    }
-  }, [activities]);
 
   // Initial load
   useEffect(() => {
@@ -95,18 +78,18 @@ const RecentActivity: React.FC = () => {
   useEffect(() => {
     // Refresh every 2 minutes
     const interval = setInterval(() => {
-      refreshActivity();
+      loadActivity(false); // Don't show loading spinner for background refresh
     }, 2 * 60 * 1000);
 
     // Refresh when user becomes active
     const handleUserActivity = () => {
-      refreshActivity();
+      loadActivity(false); // Don't show loading spinner for user activity refresh
     };
 
     window.addEventListener('focus', handleUserActivity);
     window.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
-        refreshActivity();
+        loadActivity(false);
       }
     });
 
@@ -115,7 +98,7 @@ const RecentActivity: React.FC = () => {
       window.removeEventListener('focus', handleUserActivity);
       window.removeEventListener('visibilitychange', handleUserActivity);
     };
-  }, [refreshActivity]);
+  }, [loadActivity]);
 
   const activityItems = convertToActivityItems(activities).slice(0, 6); // Show only 6 activities
 

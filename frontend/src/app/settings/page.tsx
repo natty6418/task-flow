@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import ProfileSettings from "@/components/settings/ProfileSettings";
+
 import AccountSettings from "@/components/settings/AccountSettings";
 import NotificationSettings from "@/components/settings/NotificationSettings";
 
@@ -11,16 +11,7 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('profile');
 
   const sections = [
-    {
-      id: 'profile' as const,
-      name: 'Profile',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      ),
-      description: 'Manage your profile information'
-    },
+    
     {
       id: 'account' as const,
       name: 'Account',
@@ -66,8 +57,6 @@ export default function SettingsPage() {
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'profile':
-        return <ProfileSettings />;
       case 'account':
         return <AccountSettings />;
       case 'notifications':
@@ -158,7 +147,7 @@ export default function SettingsPage() {
           </div>
         );
       default:
-        return <ProfileSettings />;
+        return <AccountSettings />;
     }
   };
 

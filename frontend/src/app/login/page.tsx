@@ -5,6 +5,8 @@ import API from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { login as loginService } from "@/services/authService";
+import { fetchCurrentUser } from "@/services/userService";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -19,13 +21,9 @@ export default function Login() {
     setError(null);
     setLoading(true);
     try {
-      await API.post(
-        "/auth/login",
-        { email, password },
-        { withCredentials: true }
-      );
-      const res = await API.get("/user/me", { withCredentials: true });
-      login(res.data);
+      await loginService(email, password);
+      const res = await fetchCurrentUser();
+      login(res);
       router.push("/");
     } catch (err: unknown) {
       setError(

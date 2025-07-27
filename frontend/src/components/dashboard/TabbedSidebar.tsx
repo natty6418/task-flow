@@ -91,7 +91,7 @@ const TabbedSidebar: React.FC<TabbedSidebarProps> = ({
           {activeTab === 'calendar' ? (
             <CalendarWidget onDateSelect={onDateSelect} selectedDate={selectedDate} />
           ) : (
-            <RecentActivity />
+            <RecentActivity numActivities={5}/>
           )}
         </div>
       </div>

@@ -97,7 +97,20 @@ export interface ActivityLog {
     
 }
 
+export interface UserProfile {
+  id: string;
+  userId: string;
+  bio?: string;
+  avatarUrl?: string;
+  jobTitle?: string;
+  location?: string;
+  company?: string;
+  phone?: string;
 
+  createdAt: Date;
+  updatedAt: Date;
+  user?: User;
+}
 
 export enum ActionType {
   TASK_CREATED = "TASK_CREATED",
