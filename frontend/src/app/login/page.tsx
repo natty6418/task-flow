@@ -54,7 +54,7 @@ export default function Login() {
   // };
 
   const handleGoogleAuth = () => {
-    window.location.href = "http://localhost:4000/auth/google";
+    window.location.href = `${process.env.BACKEND_URL}/auth/google`;
   };
   
 
