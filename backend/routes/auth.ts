@@ -27,7 +27,7 @@ router.get('/google/callback',
             maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
             path: '/'  // make cookie available for all paths
           });
-          res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`); // Redirect to dashboard or any other route
+          res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000/'}dashboard`); // Redirect to dashboard or any other route
              // Redirect to home or any other route
     }
   );
