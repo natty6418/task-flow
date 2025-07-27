@@ -25,7 +25,7 @@ router.get('/me', passport.authenticate('jwt', { session: false }),
             }
           });
 
-        console.log(userInfo)
+        
           
         res.json(userInfo);
 });

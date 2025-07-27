@@ -60,8 +60,8 @@ export default function Login() {
   
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white shadow-md rounded-lg p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-4">
+      <div className="max-w-md w-full bg-white/80 backdrop-blur-sm shadow-xl rounded-xl p-8 border border-white/20">
         <h2 className="text-2xl font-semibold text-center mb-6">
           Welcome back
         </h2>

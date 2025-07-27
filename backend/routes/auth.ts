@@ -98,6 +98,44 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
 });
 
+// Logout endpoint
+router.post('/logout', passport.authenticate('jwt', { session: false }), 
+    async (req: Request, res: Response) => {
+        try {
+            // Clear the JWT cookie
+            res.clearCookie('jwt', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/'
+            });
+
+            res.json({ message: 'Logout successful' });
+        } catch (error) {
+            console.error('Error during logout:', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    }
+);
+
+// Simple logout endpoint (doesn't require valid token)
+router.post('/logout-simple', async (req: Request, res: Response) => {
+    try {
+        // Clear the JWT cookie regardless of token validity
+        res.clearCookie('jwt', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/'
+        });
+
+        res.json({ message: 'Logout successful' });
+    } catch (error) {
+        console.error('Error during simple logout:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // Delete account endpoint
 router.delete('/delete-account', passport.authenticate('jwt', { session: false }), 
     async (req: Request, res: Response) => {

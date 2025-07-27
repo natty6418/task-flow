@@ -4,7 +4,8 @@ import { createContext, useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "../types/type";
 import API from "@/services/api";
-
+import { LogOut } from "lucide-react";
+import { logout as logoutService } from "@/services/authService";
 interface AuthContextType {
   user: User | null;
   login: (userData: User) => void;
@@ -25,9 +26,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push('/dashboard'); // Redirect to the dashboard
   };
 
-  const logout = () => {
-    setUser(null);
-    router.push('/login');
+  const logout = async () => {
+    try {
+      await logoutService();
+      setUser(null);
+      router.push('/login');
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   useEffect(() => {
@@ -36,12 +42,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const res = await API.get('/user/me', { withCredentials: true });
         if (res.status === 200) {
           setUser(res.data);
-        } else {
-          router.push('/login');
         }
+        // Don't redirect if not authenticated - let the landing page handle it
       } catch (error) {
         console.error("Authentication check failed:", error);
-        router.push('/login');
+        // Don't redirect to login - let users see the landing page
       } finally {
         setLoading(false);
       }

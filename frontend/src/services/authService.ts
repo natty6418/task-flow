@@ -32,6 +32,14 @@ export const signUp = async (name: string, email: string, password: string): Pro
     }
 }
 
+export const logout = async (): Promise<void> => {
+    try {
+        await API.post('/auth/logout', {}, { withCredentials: true });
+    } catch (err) {
+        throw new Error(extractError(err));
+    }
+}
+
 //delete-account function
 export const deleteAccount = async (): Promise<void> => {
     try {
