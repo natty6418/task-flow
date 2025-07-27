@@ -12,6 +12,8 @@ interface BoardColumnProps {
   tasks: Task[];
   availableTasks?: Task[];
   onAddTaskToBoard?: (boardId: string, taskId: string) => void;
+
+  
   onDeleteBoard?: (boardId: string) => void;
   setBoards?: React.Dispatch<React.SetStateAction<Board[]>>;
   projectId?: string;
@@ -26,6 +28,8 @@ const BoardColumn: React.FC<BoardColumnProps> = React.memo(({
   availableTasks = [],
   onAddTaskToBoard,
   onDeleteBoard,
+
+  
   activeTask,
   setBoards,
   projectId,

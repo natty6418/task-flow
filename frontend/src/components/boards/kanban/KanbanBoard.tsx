@@ -374,9 +374,6 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   onAddTaskToBoard={(boardId, taskId) => {
                     handleAddTaskToBoard(boardId, taskId);
                   }}
-                  onRemoveTaskFromBoard={(boardId, taskId) => {
-                    handleRemoveTaskFromBoard(boardId, taskId);
-                  }}
                   onDeleteBoard={handleDeleteBoard}
                 />
               </div>
