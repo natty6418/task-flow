@@ -57,3 +57,12 @@ export const updateUserProfile = async (data: Partial<UserProfile>): Promise<Use
     throw new Error(extractError(err));
   }
 };
+
+export const updateUserAvatar = async (avatarUrl: string): Promise<UserProfile> => {
+  try {
+    const res = await API.patch('/user/profile/', { avatarUrl });
+    return res.data;
+  } catch (err) {
+    throw new Error(extractError(err));
+  }
+};

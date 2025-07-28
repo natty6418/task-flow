@@ -152,13 +152,7 @@ router.delete('/delete-account', passport.authenticate('jwt', { session: false }
 
         const { password, confirmDelete } = req.body;
 
-        // Require explicit confirmation
-        if (!confirmDelete || confirmDelete !== 'DELETE_MY_ACCOUNT') {
-            res.status(400).json({ 
-                message: 'Account deletion requires explicit confirmation. Please provide confirmDelete: "DELETE_MY_ACCOUNT"' 
-            });
-            return;
-        }
+        
 
         try {
             // For credential-based users, verify password before deletion

@@ -1,11 +1,13 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Shield, Loader } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, Edit3, Save, X, Shield, Loader } from 'lucide-react';
 import { format } from 'date-fns';
-import { fetchUserProfile, updateUserProfile } from '@/services/userService';
+import { fetchUserProfile, updateUserProfile, updateUserAvatar } from '@/services/userService';
 import { UserProfile } from '@/types/type';
 import RecentActivity from '@/components/dashboard/ActivityFeed';
+import { AvatarUpload } from '@/components/common';
+import toast from 'react-hot-toast';
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -22,7 +24,7 @@ const ProfilePage = () => {
     bio: '',
     jobTitle: '',
     company: '',
-    
+    avatarUrl: '',
   });
 
   // Fetch user profile data on component mount
@@ -41,7 +43,7 @@ const ProfilePage = () => {
           bio: profileData.bio || '',
           jobTitle: profileData.jobTitle || '',
           company: profileData.company || '',
-          
+          avatarUrl: profileData.avatarUrl || '',
         });
       } catch {
         // Profile doesn't exist or failed to load - use generic placeholders
@@ -55,7 +57,7 @@ const ProfilePage = () => {
           bio: 'Welcome to TaskFlow! Update your profile to let others know more about you.',
           jobTitle: '',
           company: '',
-          
+          avatarUrl: '',
         });
       } finally {
         setLoading(false);
@@ -64,6 +66,18 @@ const ProfilePage = () => {
 
     loadProfile();
   }, [user]);
+
+  const handleAvatarUpload = async (avatarUrl: string) => {
+    try {
+      const updatedProfile = await updateUserAvatar(avatarUrl);
+      setProfile(updatedProfile);
+      setFormData(prev => ({ ...prev, avatarUrl }));
+      toast.success('Profile picture updated successfully!');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to update profile picture';
+      toast.error(errorMsg);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -85,6 +99,7 @@ const ProfilePage = () => {
         location: formData.location,
         company: formData.company,
         phone: formData.phone,
+        avatarUrl: formData.avatarUrl,
       });
       
       setProfile(updatedProfile);
@@ -107,7 +122,7 @@ const ProfilePage = () => {
         bio: profile.bio || '',
         jobTitle: profile.jobTitle || '',
         company: profile.company || '',
-        
+        avatarUrl: profile.avatarUrl || '',
       });
     } else {
       // No profile exists, use generic placeholders
@@ -119,7 +134,7 @@ const ProfilePage = () => {
         bio: 'Welcome to TaskFlow! Update your profile to let others know more about you.',
         jobTitle: '',
         company: '',
-        
+        avatarUrl: '',
       });
     }
     setIsEditing(false);
@@ -169,19 +184,14 @@ const ProfilePage = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-4">
                     {/* Avatar */}
-                    <div className="relative">
-                      <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                        {formData.name.charAt(0).toUpperCase()}
-                      </div>
-                      {isEditing && (
-                        <button 
-                          title="Change profile picture"
-                          className="absolute bottom-0 right-0 w-6 h-6 bg-gray-900 rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors"
-                        >
-                          <Camera className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
+                    <AvatarUpload
+                      currentAvatarUrl={formData.avatarUrl}
+                      name={formData.name}
+                      size="lg"
+                      onUploadSuccess={handleAvatarUpload}
+                      showUploadButton={isEditing}
+                      disabled={saving}
+                    />
                     
                     {/* Basic Info */}
                     <div className="space-y-3">

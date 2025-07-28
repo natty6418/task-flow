@@ -36,8 +36,8 @@ export default function SideBar() {
   const navItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
     { name: "Notifications", icon: Bell, href: "/notifications" },
-    { name: "Profile", icon: User, href: "/profile" },
-    { name: "Settings", icon: Settings, href: "/settings" },
+    // { name: "Profile", icon: User, href: "/profile" },
+    // { name: "Settings", icon: Settings, href: "/settings" },
   ];
 
   return (
