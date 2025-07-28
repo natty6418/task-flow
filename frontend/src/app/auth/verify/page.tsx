@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { exchangeSessionForToken } from '@/services/authService';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,16 +9,13 @@ const VerifyPage = () => {
     const router = useRouter();
     const { login } = useAuth();
     const [error, setError] = useState<string | null>(null);
-    const searchParams = useSearchParams();
 
     useEffect(() => {
         const verifyAndLogin = async () => {
             try {
-                // Get the temporary token from URL params
-                const tempToken = searchParams.get('token');
-                
-                // Make the API call to your backend to exchange the token/session for a JWT.
-                const userData = await exchangeSessionForToken(tempToken);
+                // Make the API call to your backend to exchange the session for a JWT.
+                // withCredentials: true is ESSENTIAL for sending the session cookie.
+                const userData = await exchangeSessionForToken();
 
                 // If successful, the 'jwt' cookie is now set by the browser.
                 // Update the auth context with the user data
@@ -40,7 +37,7 @@ const VerifyPage = () => {
         };
 
         verifyAndLogin();
-    }, [router, login, searchParams]);
+    }, [router, login]);
 
     if (error) {
         return (
