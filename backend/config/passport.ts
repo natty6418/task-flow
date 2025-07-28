@@ -11,6 +11,7 @@ import prisma from "../models/prismaClient";
 import { User } from "@prisma/client";
 import { Strategy as JwtStrategy } from "passport-jwt";
 import { Request } from "express";
+import { createSampleDataForUser } from "../services/sampleDataService";
 
 
 passport.serializeUser((user, done) => {
@@ -56,6 +57,9 @@ passport.use(
               authProvider: "GOOGLE",
             },
           });
+          
+          // Create sample data for new OAuth users
+          await createSampleDataForUser(user);
         }
 
         return done(null, user);
