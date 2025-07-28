@@ -16,6 +16,7 @@ const AccountSettings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [emailConfirmation, setEmailConfirmation] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
   
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
@@ -80,6 +81,7 @@ const AccountSettings: React.FC = () => {
     setShowDeleteModal(false);
     setShowConfirmDeleteModal(true);
     setEmailConfirmation('');
+    setPasswordConfirmation('');
     setError(null);
   };
 
@@ -89,11 +91,16 @@ const AccountSettings: React.FC = () => {
       return;
     }
 
+    if (!passwordConfirmation.trim()) {
+      setError('Password is required to delete your account');
+      return;
+    }
+
     try {
       setDeleteLoading(true);
       setError(null);
       
-      await deleteAccount();
+      await deleteAccount(passwordConfirmation);
       
       // The deleteAccount service should handle logout and redirect
       // If it doesn't, we might need to handle it here
@@ -108,6 +115,7 @@ const AccountSettings: React.FC = () => {
     setShowDeleteModal(false);
     setShowConfirmDeleteModal(false);
     setEmailConfirmation('');
+    setPasswordConfirmation('');
     setError(null);
   };
 
@@ -413,23 +421,41 @@ const AccountSettings: React.FC = () => {
             
             <div className="mb-6">
               <p className="text-gray-700 mb-4">
-                To confirm account deletion, please type your email address below:
-              </p>
-              <p className="text-sm text-gray-600 mb-3">
-                Your email: <span className="font-medium text-gray-900">{user?.email}</span>
+                To confirm account deletion, please provide the following information:
               </p>
               
-              <input
-                type="email"
-                value={emailConfirmation}
-                onChange={(e) => setEmailConfirmation(e.target.value)}
-                placeholder="Type your email address to confirm"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-red-500 text-sm"
-                autoComplete="off"
-              />
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Your email: <span className="font-medium text-gray-900">{user?.email}</span>
+                  </p>
+                  <input
+                    type="email"
+                    value={emailConfirmation}
+                    onChange={(e) => setEmailConfirmation(e.target.value)}
+                    placeholder="Type your email address to confirm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-red-500 text-sm"
+                    autoComplete="off"
+                  />
+                </div>
+                
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Enter your password:
+                  </p>
+                  <input
+                    type="password"
+                    value={passwordConfirmation}
+                    onChange={(e) => setPasswordConfirmation(e.target.value)}
+                    placeholder="Enter your current password"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-red-500 text-sm"
+                    autoComplete="current-password"
+                  />
+                </div>
+              </div>
               
               {error && (
-                <p className="text-red-600 text-xs mt-2">{error}</p>
+                <p className="text-red-600 text-xs mt-3">{error}</p>
               )}
             </div>
             
@@ -443,7 +469,7 @@ const AccountSettings: React.FC = () => {
               </button>
               <button
                 onClick={handleFinalDelete}
-                disabled={deleteLoading || emailConfirmation !== user?.email}
+                disabled={deleteLoading || emailConfirmation !== user?.email || !passwordConfirmation.trim()}
                 className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {deleteLoading ? (

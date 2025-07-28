@@ -41,9 +41,12 @@ export const logout = async (): Promise<void> => {
 }
 
 //delete-account function
-export const deleteAccount = async (): Promise<void> => {
+export const deleteAccount = async (password: string): Promise<void> => {
     try {
-        await API.delete('/auth/delete-account', { withCredentials: true });
+        await API.delete('/auth/delete-account', { 
+            data: { password },
+            withCredentials: true 
+        });
     } catch (err) {
         throw new Error(extractError(err));
     }
