@@ -25,6 +25,7 @@ router.get('/google/callback',
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'none',  
+            domain: process.env.NODE_ENV === 'production' ? 'task-flow-production-c3a9.up.railway.app' : undefined,
             maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
             path: '/'  // make cookie available for all paths
           });
