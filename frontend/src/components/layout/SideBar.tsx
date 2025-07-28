@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Settings, User, Bell, FolderOpen, ChevronDown, ChevronRight, ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
+import { LayoutDashboard, Bell, FolderOpen, ChevronDown, ChevronRight, ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/contexts/AppContext";

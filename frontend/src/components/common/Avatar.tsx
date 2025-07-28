@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import { getOptimizedImageUrl } from '@/services/cloudinaryService';
+import Image from 'next/image';
 
 interface AvatarProps {
   src?: string;
@@ -50,10 +51,12 @@ const Avatar: React.FC<AvatarProps> = ({
     <div className={`relative ${className}`}>
       <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex-shrink-0`}>
         {optimizedSrc ? (
-          <img
+          <Image
             src={optimizedSrc}
             alt={`${name}'s avatar`}
             className="w-full h-full object-cover"
+            width={64}
+            height={64}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">

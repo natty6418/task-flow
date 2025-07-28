@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, Menu, User, AlertTriangle, Settings, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-
 import Image from "next/image";
+import { Avatar } from "@/components/common";
+import { fetchUserProfile } from "@/services/userService";
+import { UserProfile } from "@/types/type";
 
 // Dummy dropdown components (replace with your actual UI components)
 const DropdownMenu = ({ children }: { children: React.ReactNode }) => <div className="relative inline-block text-left">{children}</div>;
@@ -15,11 +17,28 @@ const DropdownMenuItem = ({ children, onClick, className }: { children: React.Re
 const DropdownMenuSeparator = () => <hr className="my-1 border-gray-200 dark:border-gray-600" />;
 
 export default function Header() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
   
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const profile = await fetchUserProfile();
+        setUserProfile(profile);
+      } catch {
+        // Profile doesn't exist or failed to load - continue without avatar
+        setUserProfile(null);
+      }
+    };
+
+    if (user) {
+      loadUserProfile();
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!isMenuOpen) {
       // Keep logout modal state independent of dropdown menu
@@ -65,10 +84,20 @@ export default function Header() {
       {/* Right section: user dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          <button className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-            <User className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+          <div className="flex items-center justify-center overflow-hidden rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer">
+            {userProfile?.avatarUrl ? (
+              <Avatar
+                src={userProfile.avatarUrl}
+                name={user?.name || 'User'}
+                size="md"
+              />
+            ) : (
+              <div className="h-9 w-9 flex items-center justify-center">
+                <User className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+              </div>
+            )}
             <span className="sr-only">Open user menu</span>
-          </button>
+          </div>
         </DropdownMenuTrigger>
 
         {isMenuOpen && (

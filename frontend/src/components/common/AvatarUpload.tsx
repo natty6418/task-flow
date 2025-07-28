@@ -1,8 +1,9 @@
 "use client";
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Loader, User } from 'lucide-react';
+import { Camera, Upload, Loader } from 'lucide-react';
 import { uploadProfilePicture, getOptimizedImageUrl } from '@/services/cloudinaryService';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string;
@@ -143,10 +144,12 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
       >
         {/* Avatar Image or Initials */}
         {optimizedAvatarUrl ? (
-          <img
+          <Image
             src={optimizedAvatarUrl}
             alt={`${name}'s profile picture`}
             className="w-full h-full object-cover"
+            width={400}
+            height={400}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
