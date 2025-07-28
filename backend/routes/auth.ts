@@ -5,6 +5,7 @@ import { generateToken } from '../config/jwt';
 import { User, AuthProvider } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import prisma from '../models/prismaClient';
+import { createSampleDataForUser } from '../services/sampleDataService';
 
 
 
@@ -81,6 +82,10 @@ router.post('/signup', async (req: Request, res: Response) => {
                 authProvider: AuthProvider.CREDENTIALS, // Assuming local auth for signup
             }
         });
+
+        // Create sample data for the new user
+        await createSampleDataForUser(user);
+
         const token = generateToken({ id: user.id, email: user.email, role: user.role });
         res.cookie('jwt', token, {
             httpOnly: true,
