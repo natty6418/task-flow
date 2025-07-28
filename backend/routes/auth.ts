@@ -23,7 +23,7 @@ router.get('/google/callback',
         res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',  
+            sameSite: 'none',  
             maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
             path: '/'  // make cookie available for all paths
           });
