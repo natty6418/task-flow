@@ -14,12 +14,20 @@ import { Request } from "express";
 
 
 passport.serializeUser((user, done) => {
+  console.log('Serializing user:', (user as any).id);
   done(null, (user as any).id);
 });
 
 passport.deserializeUser(async (id: string, done) => {
-  const user = await prisma.user.findUnique({ where: { id } });
-  done(null, user);
+  console.log('Deserializing user with id:', id);
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    console.log('Found user:', user ? user.email : 'not found');
+    done(null, user);
+  } catch (error) {
+    console.error('Error deserializing user:', error);
+    done(error, null);
+  }
 });
 
 

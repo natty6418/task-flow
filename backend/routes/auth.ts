@@ -13,16 +13,26 @@ const router = express.Router();
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/google/callback',
-    passport.authenticate('google', {
-        // Redirect to a dedicated verification page on your frontend
-        successRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/verify`,
-        // On failure, redirect back to the login page with an error
-        failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`,
-    })
+    passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed` }),
+    (req: Request, res: Response) => {
+        console.log('Google callback hit');
+        console.log('User from auth:', req.user);
+        console.log('Session ID:', req.sessionID);
+        console.log('Session:', req.session);
+        
+        // Redirect to verification page
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/verify`);
+    }
 );
 
 // NEW: This route converts the temporary session into a permanent JWT cookie.
 router.get('/token', (req: Request, res: Response) => {
+    console.log('Token route hit');
+    console.log('Session ID:', req.sessionID);
+    console.log('Session data:', req.session);
+    console.log('User from session:', req.user);
+    console.log('Is authenticated:', req.isAuthenticated?.());
+    
     // req.user is populated by the passport.session() middleware if the session is valid
     if (req.user) {
         const user = req.user as User;
@@ -41,6 +51,7 @@ router.get('/token', (req: Request, res: Response) => {
 
     } else {
         // This will happen if the user tries to access this route without a valid session
+        console.log('No user found in session, returning 401');
         res.status(401).json({ message: 'Unauthorized' });
     }
 });
