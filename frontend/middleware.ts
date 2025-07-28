@@ -24,10 +24,14 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
 
+  // Allow unauthenticated users to access /login and /signup
+  if (!isAuthenticated && isAuthRoute) {
+    return NextResponse.next();
+  }
+
   // If user is not authenticated and trying to access protected route
   if (!isAuthenticated && isProtectedRoute) {
     const loginUrl = new URL('/login', request.url);
-    // Optionally add a redirect parameter to return user after login
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
