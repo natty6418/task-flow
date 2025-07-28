@@ -6,6 +6,10 @@ import { User, AuthProvider } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import prisma from '../models/prismaClient';
 import { createSampleDataForUser } from '../services/sampleDataService';
+import crypto from 'crypto';
+
+// Store temporary tokens in memory (in production, use Redis or database)
+const tempTokenStore = new Map<string, { userId: string, expires: number }>();
 
 
 
@@ -17,28 +21,96 @@ router.get('/google/callback',
     (req: Request, res: Response) => {
         console.log('Google callback hit');
         console.log('User from auth:', req.user);
+        
+        const user = req.user as User;
+        if (!user) {
+            res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`);
+            return;
+        }
+
+        // Generate a temporary token for secure exchange
+        const tempToken = crypto.randomBytes(32).toString('hex');
+        const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
+        
+        // Store the temp token with user ID
+        tempTokenStore.set(tempToken, { userId: user.id, expires });
+        
+        console.log('Generated temp token:', tempToken);
         console.log('Session ID:', req.sessionID);
         console.log('Session:', req.session);
         
-        // Redirect to verification page
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/verify`);
+        // Redirect to verification page with temp token
+        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/verify?token=${tempToken}`);
     }
 );
 
-// NEW: This route converts the temporary session into a permanent JWT cookie.
-router.get('/token', (req: Request, res: Response) => {
+// NEW: This route converts the temporary token into a permanent JWT cookie.
+router.get('/token', async (req: Request, res: Response) => {
     console.log('Token route hit');
-    console.log('Session ID:', req.sessionID);
-    console.log('Session data:', req.session);
-    console.log('User from session:', req.user);
-    console.log('Is authenticated:', req.isAuthenticated?.());
     
-    // req.user is populated by the passport.session() middleware if the session is valid
-    if (req.user) {
-        const user = req.user as User;
-        const token = generateToken({ id: user.id, email: user.email, role: user.role });
+    const tempToken = req.query.token as string;
+    console.log('Temp token received:', tempToken);
+    
+    if (!tempToken) {
+        // Fallback to session-based approach
+        console.log('No temp token, trying session approach');
+        console.log('Session ID:', req.sessionID);
+        console.log('Session data:', req.session);
+        console.log('User from session:', req.user);
+        console.log('Is authenticated:', req.isAuthenticated?.());
+        
+        if (req.user) {
+            const user = req.user as User;
+            const token = generateToken({ id: user.id, email: user.email, role: user.role });
 
-        res.cookie('jwt', token, {
+            res.cookie('jwt', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'none',
+                maxAge: 24 * 60 * 60 * 1000, // 24 hours
+                path: '/'
+            });
+
+            res.status(200).json(user);
+            return;
+        } else {
+            console.log('No user found in session, returning 401');
+            res.status(401).json({ message: 'Unauthorized - no token or session' });
+            return;
+        }
+    }
+
+    // Check if temp token exists and is valid
+    const tokenData = tempTokenStore.get(tempToken);
+    
+    if (!tokenData) {
+        console.log('Temp token not found in store');
+        res.status(401).json({ message: 'Invalid or expired token' });
+        return;
+    }
+    
+    if (Date.now() > tokenData.expires) {
+        console.log('Temp token expired');
+        tempTokenStore.delete(tempToken);
+        res.status(401).json({ message: 'Token expired' });
+        return;
+    }
+    
+    try {
+        // Get user from database
+        const user = await prisma.user.findUnique({ where: { id: tokenData.userId } });
+        
+        if (!user) {
+            console.log('User not found for temp token');
+            tempTokenStore.delete(tempToken);
+            res.status(401).json({ message: 'User not found' });
+            return;
+        }
+        
+        // Generate JWT token
+        const jwtToken = generateToken({ id: user.id, email: user.email, role: user.role });
+
+        res.cookie('jwt', jwtToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'none',
@@ -46,13 +118,16 @@ router.get('/token', (req: Request, res: Response) => {
             path: '/'
         });
 
-        // Send back user info so the frontend can update its state
+        // Clean up temp token
+        tempTokenStore.delete(tempToken);
+        
+        console.log('Successfully exchanged temp token for JWT');
         res.status(200).json(user);
-
-    } else {
-        // This will happen if the user tries to access this route without a valid session
-        console.log('No user found in session, returning 401');
-        res.status(401).json({ message: 'Unauthorized' });
+        
+    } catch (error) {
+        console.error('Error exchanging token:', error);
+        tempTokenStore.delete(tempToken);
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
