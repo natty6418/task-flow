@@ -1,5 +1,6 @@
 // components/settings/AccountSettings.tsx
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { updateUser } from '@/services/userService';
 import { AuthProvider } from '@/types/type';
@@ -7,6 +8,7 @@ import { User, Mail, Lock, Save, X, Loader, AlertCircle } from 'lucide-react';
 import { deleteAccount } from '@/services/authService';
 const AccountSettings: React.FC = () => {
   const { user } = useAuth();
+  const router = useRouter();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState(false);
@@ -102,8 +104,8 @@ const AccountSettings: React.FC = () => {
       
       await deleteAccount(passwordConfirmation);
       
-      // The deleteAccount service should handle logout and redirect
-      // If it doesn't, we might need to handle it here
+      // Redirect to signup page after successful account deletion
+      router.push('/signup');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete account');
     } finally {

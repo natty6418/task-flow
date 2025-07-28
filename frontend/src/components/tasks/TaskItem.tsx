@@ -163,7 +163,7 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
 
   const EditableTitle = () => {
     return (
-      <div className="flex items-center gap-3 flex-1 w-1/2 ">
+      <div className="flex items-center gap-3 flex-1 md:w-1/2 min-w-0">
         {task.status === Status.DONE ? (
           <CircleCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
         ) : (
@@ -174,7 +174,7 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
           defaultValue={task.title}
           onBlur={(e) => handleEditField('title', e.target.value)}
           disabled={!canEdit || isUpdating || canOnlyEditStatus}
-          className={`font-medium text-gray-900 w-full !outline-none !border-none bg-transparent !focus:outline-none !focus:ring-0 !focus:border-transparent !focus:shadow-none !shadow-none ${
+          className={`font-medium text-gray-900 w-full !outline-none !border-none bg-transparent !focus:outline-none !focus:ring-0 !focus:border-transparent !focus:shadow-none !shadow-none truncate ${
             !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed bg-gray-100' : ''
           }`}
           title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Task title") : "Read-only task"}
@@ -187,11 +187,11 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
   return (
     <div className="border-b border-gray-200">
       {/* Main Task Row */}
-      <div className="relative flex w-full items-center justify-between py-2">
+      <div className="relative flex w-full items-center py-2 gap-2">
         {/* Expand/Collapse Button */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-center w-6 h-6 hover:bg-gray-100 rounded mr-2"
+          className="flex items-center justify-center w-6 h-6 hover:bg-gray-100 rounded flex-shrink-0"
           title={isExpanded ? "Collapse task details" : "Expand task details"}
         >
           {isExpanded ? (
@@ -202,7 +202,9 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
         </button>
 
         <EditableTitle />
-        <div className="flex items-center gap-2 text-gray-600 text-sm flex-shrink-0">
+        
+        {/* Desktop Layout */}
+        <div className="hidden md:flex items-center gap-2 text-gray-600 text-sm flex-shrink-0">
           <div className="flex items-center gap-1 min-w-[60px]">
             <input
               type="date"
@@ -279,10 +281,81 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
             )}
           </div>
         </div>
+
+        {/* Mobile Layout */}
+        <div className="flex md:hidden items-center gap-1 flex-shrink-0">
+          {/* Status indicator for mobile */}
+          <div ref={statusDropdownRef} className="relative">
+            <button
+              onClick={() => canEdit && setStatusDropdownOpen(!statusDropdownOpen)}
+              disabled={!canEdit || isUpdating}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors hover:shadow-sm ${statusColor[task.status]} ${
+                !canEdit || isUpdating ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+              title={canEdit ? "Status" : "Read-only task"}
+            >
+              <span className="hidden sm:inline">{task.status.replace("_", " ")}</span>
+              <span className="sm:hidden">{task.status.charAt(0)}</span>
+              {canEdit && <ChevronDown className="w-3 h-3" />}
+            </button>
+            {statusDropdownOpen && canEdit && (
+              <div className="absolute top-8 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
+                {Object.values(Status).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => {
+                      handleEditField("status", status);
+                      setStatusDropdownOpen(false);
+                    }}
+                    className={`block w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors ${
+                      status === task.status ? statusColor[status] : 'text-gray-700'
+                    }`}
+                  >
+                    {status.replace("_", " ")}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Priority indicator for mobile */}
+          <div ref={priorityDropdownRef} className="relative">
+            <button
+              onClick={() => canEdit && !canOnlyEditStatus && setPriorityDropdownOpen(!priorityDropdownOpen)}
+              disabled={!canEdit || isUpdating || canOnlyEditStatus}
+              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors hover:shadow-sm ${priorityColor[task.priority]} ${
+                !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+              title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Priority") : "Read-only task"}
+            >
+              <Flag className="w-3 h-3" />
+              {canEdit && !canOnlyEditStatus && <ChevronDown className="w-3 h-3" />}
+            </button>
+            {priorityDropdownOpen && canEdit && !canOnlyEditStatus && (
+              <div className="absolute top-8 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                {Object.values(Priority).map((priority) => (
+                  <button
+                    key={priority}
+                    onClick={() => {
+                      handleEditField("priority", priority);
+                      setPriorityDropdownOpen(false);
+                    }}
+                    className={`block w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors ${
+                      priority === task.priority ? priorityColor[priority] : 'text-gray-700'
+                    }`}
+                  >
+                    {priority}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         <button
           onClick={() => canEdit && !canOnlyEditStatus && setMenuOpen((prev) => !prev)}
           disabled={!canEdit || isUpdating || canOnlyEditStatus}
-          className={`hover:bg-gray-200 p-1 rounded ml-2 ${
+          className={`hover:bg-gray-200 p-1 rounded flex-shrink-0 ${
             !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed opacity-50' : ''
           }`}
           title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Task options") : "Read-only task"}
@@ -306,7 +379,7 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
 
       {/* Expanded Task Details */}
       {isExpanded && (
-        <div className="bg-gray-50 px-8 py-4 border-t border-gray-100">
+        <div className="bg-gray-50 px-4 md:px-8 py-4 border-t border-gray-100">
           {/* Read-only notice for project tasks */}
           {projectMembers.length > 0 && !canEdit && (
             <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
@@ -324,6 +397,63 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
               </p>
             </div>
           )}
+
+          {/* Mobile Date and Priority Controls - only show on mobile when expanded */}
+          <div className="md:hidden mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
+                Due Date
+              </label>
+              <input
+                type="date"
+                disabled={!canEdit || isUpdating || canOnlyEditStatus}
+                value={task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd") : ""}
+                onChange={(e) => handleEditField("dueDate", e.target.value ? new Date(e.target.value) : undefined)}
+                className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white ${
+                  !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed opacity-50 bg-gray-100' : ''
+                }`}
+                title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Due date") : "Read-only task"}
+              />
+            </div>
+            <div ref={priorityDropdownRef} className="relative">
+              <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">
+                Priority
+              </label>
+              <button
+                onClick={() => canEdit && !canOnlyEditStatus && setPriorityDropdownOpen(!priorityDropdownOpen)}
+                disabled={!canEdit || isUpdating || canOnlyEditStatus}
+                className={`w-full flex items-center justify-between px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:border-gray-400 transition-colors ${
+                  !canEdit || isUpdating || canOnlyEditStatus ? 'cursor-not-allowed bg-gray-100 opacity-50' : ''
+                }`}
+                title={canEdit ? (canOnlyEditStatus ? "Only status can be edited" : "Priority") : "Read-only task"}
+              >
+                <div className="flex items-center gap-2">
+                  <Flag className="w-4 h-4" />
+                  <span className={`font-medium ${priorityColor[task.priority]}`}>{task.priority}</span>
+                </div>
+                {canEdit && !canOnlyEditStatus && <ChevronDown className="w-4 h-4 text-gray-400" />}
+              </button>
+              {priorityDropdownOpen && canEdit && !canOnlyEditStatus && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-20 max-h-48 overflow-y-auto">
+                  {Object.values(Priority).map((priority) => (
+                    <button
+                      key={priority}
+                      onClick={() => {
+                        handleEditField("priority", priority);
+                        setPriorityDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left ${
+                        priority === task.priority ? priorityColor[priority] : 'text-gray-700'
+                      }`}
+                    >
+                      <Flag className="w-4 h-4" />
+                      <span className="font-medium">{priority}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Task Description */}
@@ -403,14 +533,14 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
                           task.assignedToId === member.user.id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
                         }`}
                       >
-                        <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-medium flex items-center justify-center flex-shrink-0">
                           {getInitials(member.user.name)}
                         </div>
-                        <div className="flex-1">
-                          <div className="font-medium">{member.user.name}</div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">{member.user.email}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{member.user.name}</div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-gray-500 truncate">{member.user.email}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                               member.role === 'ADMIN' 
                                 ? 'bg-purple-100 text-purple-700' 
                                 : 'bg-green-100 text-green-700'
@@ -420,7 +550,7 @@ function TaskItem({ task, onUpdateTask, onRemoveTask, isUpdating, projectMembers
                           </div>
                         </div>
                         {task.assignedToId === member.user.id && (
-                          <Check className="w-4 h-4 text-blue-600 ml-auto" />
+                          <Check className="w-4 h-4 text-blue-600 ml-auto flex-shrink-0" />
                         )}
                       </button>
                     ))}

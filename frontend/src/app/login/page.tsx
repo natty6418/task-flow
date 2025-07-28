@@ -38,9 +38,7 @@ function LoginContent() {
       router.push("/");
     } catch (err: unknown) {
       setError(
-        err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data && typeof err.response.data.message === 'string'
-          ? err.response.data.message
-          : "Unable to login. Please check your credentials."
+        err instanceof Error ? err.message : "Unable to login. Please check your credentials."
       );
     } finally {
       setLoading(false);

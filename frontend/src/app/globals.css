@@ -36,6 +36,19 @@ body {
   margin: 0;
 }
 
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  .tiptap-editor .ProseMirror {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    min-height: 1.25rem;
+  }
+  
+  .tiptap-editor .tiptap-list-item {
+    padding-left: 1.25rem !important;
+  }
+}
+
 .tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;

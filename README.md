@@ -146,7 +146,7 @@ A modern, collaborative project management application built with Next.js, Expre
    cd backend
    npm run dev
    ```
-   Server will run on `http://localhost:3001`
+   Server will run on `http://localhost:4000`
 
 2. **Start the Frontend Application**
    ```bash
@@ -214,11 +214,21 @@ task-flow/
 - `PUT /board/update/:id` - Update board
 - `DELETE /board/delete/:id` - Delete board
 
+
 ### Users
 - `GET /user/me` - Get current user profile
 - `PUT /user/update` - Update user profile
 
+### Notifications
+- `GET /notification/` - Get user notifications
+- `POST /notification/markRead/:id` - Mark notification as read
+- `DELETE /notification/delete/:id` - Delete notification
+
+### Activities
+- `GET /activity/` - Get recent project or user activities
+
 ## 🎯 Key Features in Detail
+
 
 ### Kanban Board System
 - **Drag & Drop**: Seamless task movement between boards
@@ -226,6 +236,11 @@ task-flow/
 - **Custom Boards**: Create boards with custom names and descriptions
 - **Task Assignment**: Assign unassigned tasks to specific boards
 - **Status Tracking**: Automatic status updates based on board positions
+
+### Notifications & Activities
+- **In-App Notifications**: Receive real-time notifications for task assignments, mentions, project updates, and more
+- **Notification Center**: View, mark as read, or delete notifications
+- **Activity Feed**: Track all recent project and team activities in a unified feed
 
 ### Task Management
 - **Priority Levels**: Low, Medium, High priority classification

@@ -28,9 +28,7 @@ export default function Signup() {
             router.push("/");
         } catch (err: unknown) {
             setError(
-                err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data && typeof err.response.data.message === 'string'
-                    ? err.response.data.message
-                    : "Unable to create account. Please try again."
+                err instanceof Error ? err.message : "Unable to create account. Please try again."
             );
         } finally {
             setLoading(false);

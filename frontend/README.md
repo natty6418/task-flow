@@ -11,7 +11,7 @@
 - 👥 **Collaboration**: Add members to projects, assign tasks, and manage team roles.
 - 🔔 **Notifications**: Manage how you receive updates about tasks, mentions, and project activity.
 - ⚙️ **Settings**: Personalize your profile, account, notification preferences, and more.
-- 🌙 **Appearance**: Switch between light, dark, or system themes.
+
 - 🔌 **Integrations**: (Planned) Connect with tools like Slack and Google Calendar.
 
 ## Getting Started
