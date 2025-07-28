@@ -51,3 +51,13 @@ export const deleteAccount = async (password: string): Promise<void> => {
         throw new Error(extractError(err));
     }
 }
+
+// Exchange session for JWT token (for OAuth flow)
+export const exchangeSessionForToken = async () => {
+    try {
+        const response = await API.get('/auth/token', { withCredentials: true });
+        return response.data;
+    } catch (err) {
+        throw new Error(extractError(err));
+    }
+}

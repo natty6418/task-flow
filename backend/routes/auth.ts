@@ -13,26 +13,37 @@ const router = express.Router();
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/google/callback',
-    passport.authenticate('google', { failureRedirect: '/' }), 
-    (req: Request, res: Response): void => {
+    passport.authenticate('google', {
+        // Redirect to a dedicated verification page on your frontend
+        successRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/verify`,
+        // On failure, redirect back to the login page with an error
+        failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=oauth_failed`,
+    })
+);
+
+// NEW: This route converts the temporary session into a permanent JWT cookie.
+router.get('/token', (req: Request, res: Response) => {
+    // req.user is populated by the passport.session() middleware if the session is valid
+    if (req.user) {
         const user = req.user as User;
-        if (!user) {
-            res.status(401).json({ message: 'Unauthorized' });
-            return;
-        }
         const token = generateToken({ id: user.id, email: user.email, role: user.role });
+
         res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none',  
-            domain: process.env.NODE_ENV === 'production' ? 'task-flow-production-c3a9.up.railway.app' : undefined,
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
-            path: '/'  // make cookie available for all paths
-          });
-          res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`); // Redirect to dashboard or any other route
-             // Redirect to home or any other route
+            sameSite: 'none',
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            path: '/'
+        });
+
+        // Send back user info so the frontend can update its state
+        res.status(200).json(user);
+
+    } else {
+        // This will happen if the user tries to access this route without a valid session
+        res.status(401).json({ message: 'Unauthorized' });
     }
-  );
+});
 
 router.post('/login', async (req: Request, res: Response) => {
     const { email, password } = req.body;
@@ -52,7 +63,7 @@ router.post('/login', async (req: Request, res: Response) => {
         res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none',  // or 'lax' if cross-origin
+            sameSite: 'strict',  // or 'lax' if cross-origin
             maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
             path: '/'  // make cookie available for all paths
           });
