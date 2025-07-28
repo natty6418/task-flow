@@ -14,19 +14,19 @@ const API = axios.create({
 // });
 
 // Response interceptor to handle 401 unauthorized responses
-API.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear any stored auth data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        // Redirect to login page
-        window.location.href = '/login';
-      }
-    }
-    return Promise.reject(error);
-  }
-);
+// API.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     if (error.response?.status === 401) {
+//       // Clear any stored auth data
+//       if (typeof window !== 'undefined') {
+//         localStorage.removeItem('jwt');
+//         // Redirect to login page
+//         window.location.href = '/login';
+//       }
+//     }
+//     return Promise.reject(error);
+//   }
+// );
 
 export default API;
