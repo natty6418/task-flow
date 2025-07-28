@@ -38,7 +38,7 @@ export default function Signup() {
     };
 
     const handleGoogleAuth = () => {
-        window.location.href = "http://localhost:4000/auth/google";
+        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
     };
 
     return (
