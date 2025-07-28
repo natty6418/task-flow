@@ -9,25 +9,48 @@ export interface CloudinaryUploadResponse {
 }
 
 export const uploadProfilePicture = async (file: File): Promise<CloudinaryUploadResponse> => {
+  // Check if environment variables are available
+  if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) {
+    throw new Error('Cloudinary cloud name not configured');
+  }
+  
+  if (!process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) {
+    throw new Error('Cloudinary upload preset not configured');
+  }
+
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', 'profile-pictures');
+  
+  // Add transformation for profile pictures
+  formData.append('transformation', JSON.stringify([
+    { width: 400, height: 400, crop: 'fill', quality: 'auto' },
+    { fetch_format: 'auto' }
+  ]));
 
   try {
-    // Use our API route for more secure uploads
-    const response = await fetch('/api/cloudinary/upload', {
-      method: 'POST',
-      body: formData,
-    });
+    // Use direct Cloudinary upload (more reliable than API route)
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to upload image');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `HTTP ${response.status}: Failed to upload image`);
     }
 
     const data: CloudinaryUploadResponse = await response.json();
     return data;
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Failed to upload profile picture');
   }
 };
