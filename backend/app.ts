@@ -40,8 +40,11 @@ app.use(
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === 'production', // true if using HTTPS
+      httpOnly: true,
+      sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24, // 1 day
     },
+    proxy: true,
   })
 );
 app.use(passport.initialize());
