@@ -10,9 +10,9 @@ const authRoutes = ['/login', '/signup'];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Check if user has authentication token (assuming it's stored in cookies)
-  const token = request.cookies.get('token')?.value;
-  const isAuthenticated = !!token;
+  // Check if user has authentication token (using 'jwt' cookie set by backend)
+  const jwt = request.cookies.get('jwt')?.value;
+  const isAuthenticated = !!jwt;
 
   // Check if the current path is a protected route
   const isProtectedRoute = protectedRoutes.some(route => 
