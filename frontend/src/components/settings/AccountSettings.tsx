@@ -91,7 +91,7 @@ const AccountSettings: React.FC = () => {
       return;
     }
 
-    if (!passwordConfirmation.trim()) {
+    if (!passwordConfirmation.trim() && user?.authProvider === AuthProvider.CREDENTIALS) {
       setError('Password is required to delete your account');
       return;
     }
@@ -450,6 +450,7 @@ const AccountSettings: React.FC = () => {
                     placeholder="Enter your current password"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-0 focus:border-red-500 text-sm"
                     autoComplete="current-password"
+                    disabled={user?.authProvider !== AuthProvider.CREDENTIALS}
                   />
                 </div>
               </div>

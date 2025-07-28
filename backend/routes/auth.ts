@@ -162,7 +162,7 @@ router.delete('/delete-account', passport.authenticate('jwt', { session: false }
             return;
         }
 
-        const { password, confirmDelete } = req.body;
+        const { password } = req.body;
 
         
 
