@@ -85,7 +85,7 @@ router.post('/signup', async (req: Request, res: Response) => {
         res.cookie('jwt', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',  // or 'lax' if cross-origin
+            sameSite: 'none',  // or 'lax' if cross-origin
             maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
             path: '/'  // make cookie available for all paths
           });
@@ -106,7 +106,7 @@ router.post('/logout', passport.authenticate('jwt', { session: false }),
             res.clearCookie('jwt', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: 'none',
                 path: '/'
             });
 
@@ -125,7 +125,7 @@ router.post('/logout-simple', async (req: Request, res: Response) => {
         res.clearCookie('jwt', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'none',
             path: '/'
         });
 
@@ -255,7 +255,7 @@ router.delete('/delete-account', passport.authenticate('jwt', { session: false }
             res.clearCookie('jwt', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
+                sameSite: 'none',
                 path: '/'
             });
 
