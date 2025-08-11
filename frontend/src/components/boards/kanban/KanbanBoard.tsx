@@ -11,12 +11,11 @@ import {
   DragOverlay,
   useDroppable,
 } from "@dnd-kit/core";
-import { Board, Task, TasksByBoard } from "@/types/type";
+import { Board, Task, TasksByBoard, Status } from "@/types/type";
 import BoardColumn from "./BoardColumn";
 import TaskCard from "./TaskCard";
 import { updateBoard } from "@/services/boardService";
 import { Plus, Trash2 } from "lucide-react";
-import { Status } from "@/types/type";
 import { createBoard, deleteBoard } from "@/services/boardService";
 
 interface KanbanBoardProps {
@@ -59,6 +58,17 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   const sensors = useSensors(useSensor(PointerSensor));
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
   const [loadingBoards, setLoadingBoards] = React.useState<Set<string>>(new Set());
+
+  // TODO: Implement default boards initialization without causing infinite loops
+  // React.useEffect(() => {
+  //   const initializeDefaultBoards = async () => {
+  //     if (projectId && boards.length !== undefined) {
+  //       await ensureDefaultBoards(projectId, boards, setBoards);
+  //     }
+  //   };
+    
+  //   initializeDefaultBoards();
+  // }, [projectId, boards, setBoards]);
   const getUniqueboardName = () => {
       const baseName = "Untitled Board";
       const existingNames = boards.map(board => board.name.toLowerCase());
@@ -131,13 +141,23 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     // If task moved to a different board
     const taskId = active.id as string;
     const newBoardId = over.id as string;
+    const task = tasks.find((task) => task.id === taskId);
+    const newBoard = boards.find((board) => board.id === newBoardId);
+
+    if (!task || !newBoard) return;
+
+    // Update task with new board assignment and status (if board has specific status)
+    const updatedTask = {
+      ...task,
+      boardId: newBoardId,
+      status: newBoard.status || task.status // Use board's status if available, otherwise keep current
+    };
 
     setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId ? { ...task, boardId: newBoardId } : task
+      prev.map((t) =>
+        t.id === taskId ? updatedTask : t
       )
     );
-    const task = tasks.find((task) => task.id === taskId);
     const updatedBoard = boards.find((board) => board.id === newBoardId);
     const prevBoard = boards.find((board) => board.id === task?.boardId);
 
@@ -166,7 +186,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
           // Revert the task state on error
           setTasks((prev) =>
             prev.map((t) =>
-              t.id === taskId ? { ...t, boardId: prevBoard.id } : t
+              t.id === taskId ? { ...t, boardId: prevBoard.id, status: task.status } : t
             )
           );
         } finally {
@@ -185,15 +205,15 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         try {
           await updateBoard({
             ...updatedBoard,
-            tasks: [...(updatedBoard.tasks || []), { ...task, boardId: newBoardId }],
+            tasks: [...(updatedBoard.tasks || []), updatedTask],
           });
-          console.log("Task moved:", task, "to board:", updatedBoard);
+          console.log("Task moved:", updatedTask, "to board:", updatedBoard);
         } catch (err) {
           console.error("Error updating board:", err);
           // Revert the task state on error
           setTasks((prev) =>
             prev.map((t) =>
-              t.id === taskId ? { ...t, boardId: task.boardId } : t
+              t.id === taskId ? task : t
             )
           );
         } finally {

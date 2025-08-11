@@ -2,7 +2,7 @@ import express from "express";
 import passport from "passport";
 import { Request, Response } from 'express';
 import prisma from '../models/prismaClient';
-import { User } from "@prisma/client";
+import { User, Status } from "@prisma/client";
 
 const router = express.Router();
 router.post("/create", passport.authenticate("jwt", { session: false }),
@@ -40,6 +40,24 @@ router.post("/create", passport.authenticate("jwt", { session: false }),
                     role: "ADMIN",  
                 }
             });
+
+            // 3. Create default boards for the project
+            const defaultBoards = [
+                { name: "To Do", status: "TODO" as Status },
+                { name: "In Progress", status: "IN_PROGRESS" as Status },
+                { name: "Done", status: "DONE" as Status }
+            ];
+
+            await prisma.board.createMany({
+                data: defaultBoards.map(board => ({
+                    name: board.name,
+                    projectId: project.id,
+                    status: board.status,
+                    description: `Default ${board.name} board`
+                }))
+            });
+
+            // 4. Update project to connect members
             project = await prisma.project.update({
                 where: { id: project.id },
                 data: {
@@ -54,7 +72,8 @@ router.post("/create", passport.authenticate("jwt", { session: false }),
                             name: true,
                             email: true,
                         }
-                    }
+                    },
+                    boards: true // Include the created boards in the response
                 }
             });
 

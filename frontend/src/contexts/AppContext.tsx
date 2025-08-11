@@ -76,10 +76,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     fetchProjects();
   }, [user, fetchProjects]);
 
-  // Fetch tasks when user or projects change
+  // Fetch tasks when user changes (not when projects change)
   useEffect(() => {
     fetchTasks();
-  }, [user, projects, fetchTasks]);
+  }, [user, fetchTasks]);
 
   return (
     <AppContext.Provider

@@ -30,7 +30,7 @@ router.get('/token', (req: Request, res: Response) => {
 
         res.cookie('jwt', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,  // Must be true when sameSite is 'none'
             sameSite: 'none',
             maxAge: 24 * 60 * 60 * 1000, // 24 hours
             path: '/'
@@ -62,7 +62,7 @@ router.post('/login', async (req: Request, res: Response) => {
         const token = generateToken({ id: user.id, email: user.email, role: user.role });
         res.cookie('jwt', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,  // Must be true when sameSite is 'none'
             sameSite: 'none',  // or 'lax' if cross-origin
             maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
             path: '/'  // make cookie available for all paths
@@ -101,7 +101,7 @@ router.post('/signup', async (req: Request, res: Response) => {
         const token = generateToken({ id: user.id, email: user.email, role: user.role });
         res.cookie('jwt', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,  // Must be true when sameSite is 'none'
             sameSite: 'none',  // or 'lax' if cross-origin
             maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
             path: '/'  // make cookie available for all paths
@@ -122,7 +122,7 @@ router.post('/logout', passport.authenticate('jwt', { session: false }),
             // Clear the JWT cookie
             res.clearCookie('jwt', {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
+                secure: true,  // Must match the original cookie settings
                 sameSite: 'none',
                 path: '/'
             });
@@ -141,7 +141,7 @@ router.post('/logout-simple', async (req: Request, res: Response) => {
         // Clear the JWT cookie regardless of token validity
         res.clearCookie('jwt', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,  // Must match the original cookie settings
             sameSite: 'none',
             path: '/'
         });
@@ -265,7 +265,7 @@ router.delete('/delete-account', passport.authenticate('jwt', { session: false }
             // Clear the JWT cookie
             res.clearCookie('jwt', {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
+                secure: true,  // Must match the original cookie settings
                 sameSite: 'none',
                 path: '/'
             });

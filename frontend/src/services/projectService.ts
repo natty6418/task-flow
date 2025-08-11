@@ -1,6 +1,7 @@
 import API from './api';
 import { AxiosError } from 'axios';
 import { Project, Task, User, Status, Priority } from '@/types/type';
+import { ensureBoardForStatus } from '@/utils/boardUtils';
 
 interface ApiErrorResponse {
   message?: string;
@@ -58,6 +59,14 @@ export const addTaskToProject = async (data: {
   boardId?: string;
 }): Promise<Task> => {
   try {
+    // If no boardId is provided and status is specified, find the appropriate board
+    if (!data.boardId && data.status) {
+      const targetBoardId = await ensureBoardForStatus(data.projectId, data.status);
+      if (targetBoardId) {
+        data = { ...data, boardId: targetBoardId };
+      }
+    }
+
     const res = await API.post('/project/addTask', data);
     return res.data;
   } catch (err) {

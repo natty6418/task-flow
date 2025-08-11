@@ -38,6 +38,17 @@ export default function BoardsList({
   const [expandedBoardId, setExpandedBoardId] = useState<string | null>(null);
   const [hoveredBoardId, setHoveredBoardId] = useState<string | null>(null);
 
+  // TODO: Implement default boards initialization without causing infinite loops
+  // useEffect(() => {
+  //   const initializeDefaultBoards = async () => {
+  //     if (projectId && boards.length !== undefined) {
+  //       await ensureDefaultBoards(projectId, boards, setBoards);
+  //     }
+  //   };
+  //   
+  //   initializeDefaultBoards();
+  // }, [projectId, boards, setBoards]);
+
   const handleAddBoard = async () => {
     // Generate unique board name
     const getUniqueboardName = () => {

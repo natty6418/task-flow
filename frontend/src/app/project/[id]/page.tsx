@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation"; 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import ProjectDetails from "@/components/project/ProjectDetails";
 import Loader from "@/components/common/Loader";
 import { Project } from "@/types/type";
@@ -16,13 +16,16 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { projects, setProjects } = useApp();
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     const loadProject = async () => {
-      if (!id || typeof id !== 'string') {
+      if (!id || typeof id !== 'string' || hasLoadedRef.current) {
         setLoading(false);
         return;
       }
+
+      hasLoadedRef.current = true;
 
       try {
         setError(null);
@@ -30,7 +33,7 @@ export default function ProjectPage() {
         
         // Check if project exists in context first
         const existingProject = projects.find((p) => p.id === id);
-        if (existingProject) {
+        if (existingProject && project) {
           setProject(existingProject);
           setLoading(false);
           return;
@@ -55,15 +58,15 @@ export default function ProjectPage() {
     };
 
     loadProject();
-  }, [id, projects, setProjects]); // Remove 'project' from dependencies
+  }, [id, projects, setProjects, project]); // Keep all dependencies but use ref to prevent re-runs
 
   // Handle project updates from child component
-  const handleProjectUpdate = (updatedProject: Project) => {
+  const handleProjectUpdate = useCallback((updatedProject: Project) => {
     setProject(updatedProject);
     setProjects((prev) => 
       prev.map(p => p.id === updatedProject.id ? updatedProject : p)
     );
-  };
+  }, [setProjects]);
 
   if (loading) return <Loader />;
   if (error) return <p className="text-center text-red-500 mt-10">{error}</p>;

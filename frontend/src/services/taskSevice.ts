@@ -1,6 +1,7 @@
 import API from "./api";
 import { AxiosError } from "axios";
-import { Task } from "@/types/type";
+import { Task, Status } from "@/types/type";
+import { ensureBoardForStatus } from "@/utils/boardUtils";
 
 interface ErrorResponse {
   message: string;
@@ -36,6 +37,14 @@ export const fetchProjectTasks = async (projectId: string): Promise<Task[]> => {
 // 🔹 Create a new task
 export const createTask = async (taskData: Task): Promise<Task> => {
   try {
+    // If projectId is provided and no boardId is set, try to find the appropriate board
+    if (taskData.projectId && !taskData.boardId) {
+      const targetBoardId = await ensureBoardForStatus(taskData.projectId, taskData.status);
+      if (targetBoardId) {
+        taskData = { ...taskData, boardId: targetBoardId };
+      }
+    }
+
     const response = await API.post("/task/create", taskData);
     return response.data;
   } catch (err) {
@@ -56,6 +65,15 @@ export const assignTask = async (taskId: string, userId: string): Promise<Task> 
 // 🔹 Update an existing task
 export const updateTask = async (taskData: Task): Promise<Task> => {
   try {
+    // If the task has a projectId and the status might have changed, 
+    // ensure it's assigned to the correct board
+    if (taskData.projectId && taskData.status) {
+      const targetBoardId = await ensureBoardForStatus(taskData.projectId, taskData.status);
+      if (targetBoardId && targetBoardId !== taskData.boardId) {
+        taskData = { ...taskData, boardId: targetBoardId };
+      }
+    }
+
     const response = await API.put("/task/update", taskData);
     return response.data;
   } catch (err) {
@@ -67,6 +85,35 @@ export const updateTask = async (taskData: Task): Promise<Task> => {
 export const deleteTask = async (taskId: string): Promise<Task> => {
   try {
     const response = await API.delete(`/task/delete/${taskId}`);
+    return response.data;
+  } catch (err) {
+    throw new Error(extractError(err));
+  }
+};
+
+// 🔹 Move task to appropriate board based on status
+export const moveTaskToBoard = async (taskId: string, status: Status, projectId: string): Promise<Task> => {
+  try {
+    // Fetch the current task
+    const taskResponse = await API.get(`/task/${taskId}`);
+    const currentTask = taskResponse.data;
+
+    // Get the appropriate board for the status
+    const targetBoardId = await ensureBoardForStatus(projectId, status);
+
+    if (!targetBoardId) {
+      throw new Error(`No board found for status: ${status}`);
+    }
+
+    // Update the task with new status and board
+    const updatedTask = {
+      ...currentTask,
+      status,
+      boardId: targetBoardId,
+      updatedAt: new Date()
+    };
+
+    const response = await API.put("/task/update", updatedTask);
     return response.data;
   } catch (err) {
     throw new Error(extractError(err));
