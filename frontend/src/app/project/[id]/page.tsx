@@ -30,7 +30,7 @@ export default function ProjectPage() {
         
         // Check if project exists in context first
         const existingProject = projects.find((p) => p.id === id);
-        if (existingProject && project) {
+        if (existingProject) {
           setProject(existingProject);
           setLoading(false);
           return;
@@ -55,7 +55,7 @@ export default function ProjectPage() {
     };
 
     loadProject();
-  }, [id, projects, setProjects, project]); // Include all dependencies
+  }, [id, projects, setProjects]); // Remove 'project' from dependencies
 
   // Handle project updates from child component
   const handleProjectUpdate = (updatedProject: Project) => {
